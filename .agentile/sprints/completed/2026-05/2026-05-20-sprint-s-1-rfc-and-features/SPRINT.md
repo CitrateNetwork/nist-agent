@@ -2,8 +2,9 @@
 created: 2026-05-20T00:00:00Z
 branch: main
 author: Saul Loveman + Claude Opus 4.7 (1M context)
-status: active
+status: completed
 sprint: S-1
+closed: 2026-05-20T00:00:00Z
 ---
 
 # Sprint S-1: RFC canonization + planset + feature inventory + backlog seed
@@ -18,7 +19,7 @@ sprint: S-1
 | **Branch** | `main` |
 | **Start Date** | 2026-05-19 |
 | **End Date (target)** | 2026-05-20 |
-| **Status** | `IN PROGRESS` |
+| **Status** | `COMPLETE` |
 | **Planset** | [`../../planset/2026-05-19-nist-sidecar-v1/OVERVIEW.md`](../../planset/2026-05-19-nist-sidecar-v1/OVERVIEW.md) |
 | **Predecessors** | S-0 bootstrap (commit `cebd5d7`) |
 
@@ -88,20 +89,22 @@ and its sprint stub. Status: **DONE**.
 
 Acceptance: `.agentile/sprints/backlog/<slug>.md` exists for S-2
 through S-13 (12 files); each carries Rule-12 frontmatter, goal,
-features-owned list, predecessors, exit criteria. Status: **IN
-PROGRESS**.
+features-owned list, predecessors, exit criteria. Status: **DONE**.
 
 ### WP-1.7 — Re-run index and frontmatter ratchet
 
 Acceptance: `scripts/sprint.sh index` regenerates
 `.agentile/INDEX/INDEX_CHRONOLOGICAL.md`;
-`scripts/ci/check_frontmatter.py` reports 100% coverage.
+`scripts/ci/check_frontmatter.py` reports 100% coverage. Status:
+**DONE** — frontmatter coverage 50/50 (100.0%) at close.
 
 ### WP-1.8 — Federation manifest opens an entry for nist-agent
 
 Acceptance: an entry exists in `citrate-federation/manifest.toml`
-for `nist-agent` at the current HEAD; this is a cross-repo PR. Filed
-as a follow-up. Status: **DEFERRED to S-3**.
+for `nist-agent` at the current HEAD. Status: **DONE in same close
+window** — manifest entry + `repos/nist-agent/{owners.md,deps.md}`
++ federation sprint file landed in Citrate-Labs/citrate-federation/
+on 2026-05-20 (commit pending from user side).
 
 ## Daily updates
 
@@ -109,6 +112,10 @@ as a follow-up. Status: **DEFERRED to S-3**.
   drafted, decision points resolved with user, bootstrap.sh run.
 - 2026-05-20 — All WPs except 1.6, 1.7, 1.8 are DONE. WP-1.6 in
   flight (12 backlog stubs). WP-1.7 will run at sprint close.
+- 2026-05-20 (close) — WP-1.6 landed (12 stubs in `sprints/backlog/`);
+  WP-1.7 ran (50/50 frontmatter); WP-1.8 landed in same window
+  (federation manifest entry + repos/nist-agent/ + federation
+  sprint authored). Sprint moved to `sprints/completed/2026-05/`.
 
 ## Exit criteria
 
@@ -117,10 +124,41 @@ as a follow-up. Status: **DEFERRED to S-3**.
 - [x] CONFIG and PRODUCT_SPEC filled
 - [x] Planset complete
 - [x] 44 feature files
-- [ ] 12 backlog stubs (in progress)
-- [ ] Index regenerated, frontmatter coverage 100%
-- [ ] Sprint moves to `sprints/completed/2026-05/sprint-s-1-rfc-and-features/`
+- [x] 12 backlog stubs
+- [x] Index regenerated, frontmatter coverage 100%
+- [x] Sprint moved to `sprints/completed/2026-05/`
+- [x] Federation manifest entry opened (WP-1.8 absorbed into close)
 
-## Close note
+## Close note (2026-05-20)
 
-(filled in at close)
+S-1 closed cleanly. Three commits in `nist-agent/main`:
+`f856ec1` (skeleton import), `cebd5d7` (bootstrap), `a5a43ac`
+(federation alignment). One commit pending on `citrate-federation`
+(manifest entry + repos/nist-agent + federation sprint file).
+
+**What shipped vs. plan.** Everything in the plan, plus WP-1.8
+(originally deferred to S-3). The deferral was the right call at
+plan-time — once S-1's structural docs were in, opening the
+federation manifest entry was cheap. Pulling it forward keeps S-3
+focused on the Cargo workspace.
+
+**What changed mid-sprint.** Nothing material; the planset froze
+on day 1. The bootstrap CONFIG template left `<ONE_LINE>` as a
+placeholder even though `--description` was passed (minor skeleton
+bug); patched manually in WP-1.3. Worth filing upstream against
+`citrate-federation/agentile-skeleton` after S-3.
+
+**Lessons for S-2 / S-3.**
+- The skeleton-shipped LICENSE/README/CHANGELOG/INSTALL were all
+  about the skeleton itself. We replaced LICENSE + README and moved
+  the other two to `docs/agentile-skeleton/`. Worth flagging on
+  bootstrap so future projects don't carry the skeleton's prose.
+- 44 features × ~50 lines each was the right granularity — wide
+  enough that each is a clean spec target, narrow enough that no
+  feature needs decomposition for its owning sprint.
+- The ALIGNMENT.md crosswalk against `citrate-agent-runtime` is the
+  load-bearing doc going forward. Every sprint kickoff should
+  read it before scoping.
+
+**Next sprint(s).** S-2 (TLA+ port) and S-3 (Cargo workspace)
+activate together; they have no mutual blocker.
