@@ -3,7 +3,7 @@ created: 2026-04-30T05:00:00Z
 branch: main
 author: agentile-skeleton
 sprint: S-0
-status: template
+status: active
 ---
 
 <!--
@@ -39,7 +39,7 @@ its time.
 | **Sprint Name** | Bootstrap — adopt the agentile skeleton in this project |
 | **Goal** | Fill in CONFIG.md, PRODUCT_SPEC.md, and BASELINE.md so the framework knows what project it's running in. Author the project's first journal. End in a state where Sprint 1 can begin under FEATURE.md without bootstrap exercises. |
 | **Branch** | `chore/agentile-bootstrap` (or per project convention) |
-| **Start Date** | YYYY-MM-DD |
+| **Start Date** | 2026-05-20 |
 | **End Date (target)** | YYYY-MM-DD (typically same day or next day) |
 | **Status** | NOT STARTED — bootstrap.sh has not yet replaced this placeholder |
 

@@ -1,0 +1,24 @@
+{
+  "project": "nist-agent",
+  "day_zero_commit": "f856ec1fb72dbb5e25785cac835f779a3fce9431",
+  "day_zero_date": "2026-05-20",
+  "tests": {
+    "count": 0,
+    "command": ""
+  },
+  "specs": {
+    "count": 0,
+    "directories": [
+      ".agentile/formal/specs"
+    ],
+    "command": ""
+  },
+  "tripwires": {
+    "count": 0,
+    "command": ""
+  },
+  "frontmatter": {
+    "covered": 0,
+    "total": 0
+  }
+}
