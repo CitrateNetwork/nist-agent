@@ -1,155 +1,119 @@
 ---
-created: 2026-04-30T03:50:00Z
+created: 2026-05-20T00:00:00Z
 branch: main
 author: Saul Loveman + Claude Opus 4.7 (1M context)
 status: active
+repo: nist-agent
+tier: T1
 ---
 
-# Agent Entry Point
+# Agent Entry — nist-agent
 
-> **Read this file first.** Every contributor — human or AI — starts here.
+> **Lightweight subset.** This file points back to the canonical
+> agentile framework lineage. Start here whenever you (human or AI)
+> are working in **nist-agent**.
 
-## Who Are You?
+## What this repo is
 
-| If you are... | Go to... |
-|---------------|----------|
-| **A new contributor (human or AI)** | [Cold Start](#cold-start) below |
-| **Returning to an active sprint** | [sprints/CURRENT.md](sprints/CURRENT.md) |
+A composable, NIST-compliant agent harness — the **distribution and
+sidecar** packaging of [RFC-CIT-AGENT-0001][rfc]: a Rust-implemented
+agent runtime that operates by default in air-gapped configuration,
+gates every action through a cryptographically-signed
+tiered-risk-plus-role-bound quorum, and anchors tamper-evident audit
+state on the Citrate L1 chain (chain id 40204) or any compatible EVM
+chain.
 
----
+nist-agent is a **sidecar consumer** of
+[`citrate-agent-runtime`][runtime]: it depends on `citrate-agent-core`
+as a crate, generalizes the chain client to be EVM-adapter-trait-driven
+(not Citrate-specific), authors the overlay-keyed policy bundles
+(NIST SP 800-171 / CMMC L3 baseline + FERPA / HIPAA / FedRAMP /
+ITAR / IL4-5 / CJIS / IRS 1075 overlays), completes the doctor checks,
+populates the five normative TLA+ specs locally, and packages the
+signed reproducible distribution that organizations on Citrate or
+other EVM chains can bolt onto their existing infrastructure.
 
-## Cold Start
+Repo tier: **T1** — full external (Trail of Bits) audit required
+before v1.0.0.
 
-If you have no prior context about this project:
+[rfc]: ../docs/rfcs/RFC-CIT-AGENT-0001.md
+[runtime]: https://github.com/CitrateNetwork/citrate-agent-runtime
 
-1. **Read** [SPIRIT.md](SPIRIT.md) — the public rule-of-meaning layer.
-2. **Read** [SOUL.md](SOUL.md) — the values guiding tradeoffs and learning.
-3. **Read** [AGENT.md](AGENT.md) — how humans and agents interpret rules without drifting into private language.
-4. **Read** [CONFIG.md](CONFIG.md) — canonical project constants (filled in by `bootstrap.sh`).
-5. **Read** [PRODUCT_SPEC.md](PRODUCT_SPEC.md) — what the finished product does (filled in by `bootstrap.sh`).
-6. **Read** [rules/CORE_RULES.md](rules/CORE_RULES.md) — non-negotiable operating rules.
-7. **Check** [sprints/CURRENT.md](sprints/CURRENT.md) — what work is active right now.
-8. **Check** [sprints/backlog/](sprints/backlog/) — what needs to be done next.
-9. **Pick a task** from the current sprint or backlog.
-10. **Follow** the relevant [workflow](workflows/) for execution.
+## What to read, in order
 
-**GATE: Do NOT write code until you have read SPIRIT.md, SOUL.md, AGENT.md, CONFIG.md, and CORE_RULES.md.**
+1. **This file** (you're here).
+2. **The RFC** — [`docs/rfcs/RFC-CIT-AGENT-0001.md`](../docs/rfcs/RFC-CIT-AGENT-0001.md). The architecture reference. Everything in this repo is downstream of it.
+3. **The planset** — [`planset/2026-05-19-nist-sidecar-v1/OVERVIEW.md`](planset/2026-05-19-nist-sidecar-v1/OVERVIEW.md). The multi-sprint workstream that produces v1.0.
+4. **Federation control plane** — [`citrate-federation/agentile/AGENT_ENTRY.md`](https://github.com/CitrateNetwork/citrate-federation/blob/main/agentile/AGENT_ENTRY.md). The active control-plane entry.
+5. **Active federation sprint** — [`citrate-federation/agentile/CURRENT.md`](https://github.com/CitrateNetwork/citrate-federation/blob/main/agentile/CURRENT.md).
+6. **Core rules** — [`citrate-federation/agentile/rules/CORE_RULES.md`](https://github.com/CitrateNetwork/citrate-federation/blob/main/agentile/rules/CORE_RULES.md). The 13 non-negotiables across the federation. A local mirror lives at [`rules/CORE_RULES.md`](rules/CORE_RULES.md) for offline reading; the federation copy wins on any drift.
+7. **Pre-split historical context** — [`citrate-agentile-archive`](https://github.com/CitrateNetwork/citrate-agentile-archive). Read **only** when investigating the May-2026 monorepo split or earlier history.
+8. **Org defaults (SECURITY, CoC, AUDIT_POSTURE)** — [`CitrateNetwork/.github`](https://github.com/CitrateNetwork/.github).
 
----
+## Audit lineage
 
-## Project Overview
+This repo participates in the federation-wide audit cadence captured in
+[`citrate-agentile-archive/audits/AUDIT_INDEX.md`](https://github.com/CitrateNetwork/citrate-agentile-archive/blob/main/audits/AUDIT_INDEX.md).
 
-**This is a placeholder.** The bootstrap script
-(`bootstrap.sh` at repo root) fills this section in from the answers
-you give during initial project setup, including:
+When a TOB plugin sweep, COSAiS crosswalk, or DCMA-DIBCAC-rehearsal
+finding produces evidence here, it is filed under that per-repo folder
+in the archive, **not** in this `.agentile/audits/` directory. This
+file stays a stable, lightweight pointer.
 
-- Project name and one-line description
-- Primary language(s) and toolchain
-- Top-level architectural shape
-- Test suite invocation (so the test-count ratchet works on day one)
-- Whether TLA+ is in scope (informs `formal/` workflow)
+## What lives here, locally
 
-For the finished product spec, see [PRODUCT_SPEC.md](PRODUCT_SPEC.md).
-For canonical constants (versioned IDs, environment names, etc.), see
-[CONFIG.md](CONFIG.md).
+| Path                              | Purpose                                                                |
+|-----------------------------------|------------------------------------------------------------------------|
+| `.agentile/AGENT_ENTRY.md`        | This file — entry point.                                               |
+| `.agentile/CONFIG.md`             | Canonical project constants (versioned IDs, default ports, env names). |
+| `.agentile/PRODUCT_SPEC.md`       | What the finished sidecar product does.                                |
+| `.agentile/rules/`                | Local mirror of federation rules + repo-specific rule notes.           |
+| `.agentile/planset/`              | Multi-sprint strategic frames. The Phase-1 plan lives here.            |
+| `.agentile/sprints/`              | Sprints scoped to this repo only (active/backlog/completed/archived).  |
+| `.agentile/adrs/`                 | Repo-local architectural decisions.                                    |
+| `.agentile/audits/`               | Local audit notes that never need to live in the archive.              |
+| `.agentile/formal/`               | The 5 normative TLA+ specs + their `.cfg` and VERIFICATION_WORKFLOW.   |
+| `.agentile/coverage/`             | Ratchet baselines (test count, frontmatter, spec, tripwire).           |
+| `.agentile/docs/methodology/`     | Local methodology synthesis (METHODOLOGY, FAILURE_MODES, CHRONOLOGY).  |
+| `.agentile/templates/`            | Sprint / ADR / journal / case-study / essay / retro / audit templates. |
+| `.agentile/workflows/`            | FEATURE, AUDIT_DRIVEN, REMEDIATION_TRACK, CEREMONY, SPRINT_LIFECYCLE.  |
+| `.agentile/INDEX/`                | Generated chronological index of every dated doc.                      |
+| `../features/`                    | Gherkin feature inventory — one .feature per RFC normative section.    |
+| `../docs/rfcs/`                   | The RFC and its addenda.                                               |
+| `../docs/compliance/`             | NIST control family ↔ component crosswalks.                            |
 
----
+A repo-scoped audit lives **here**. A federation-wide audit lives in
+the archive. The dividing line: if the audit touches multiple repos,
+it goes in the archive; if it's confined to this repo's internals, it
+can live here.
 
-## Framework Structure
+## Cross-repo references
 
-```
-.agentile/
-├── AGENT_ENTRY.md          # You are here
-├── SPIRIT.md               # Public rule-of-meaning
-├── SOUL.md                 # Values
-├── AGENT.md                # Human/agent cooperation rules
-├── CONFIG.md               # Canonical project constants (filled by bootstrap)
-├── PRODUCT_SPEC.md         # What the finished product does (filled by bootstrap)
-├── MANIFEST.md             # Index of framework files
-├── rules/                  # Non-negotiable operating rules
-├── workflows/              # Step-by-step execution procedures
-├── templates/              # Copyable document templates
-├── docs/                   # Living documentation + canonical essays
-│   ├── methodology/        # The synthesis of how the workflow works
-│   ├── journals/           # Sprint-boundary reflections
-│   ├── essays/             # Conceptual arguments
-│   ├── case_studies/       # Anchor-incident-driven lessons
-│   └── reports/            # Generated artifacts
-├── sprints/                # active/, completed/, archived/, backlog/
-├── audits/                 # Dated audit reports (immutable)
-├── coverage/               # Test-count baselines + gate definitions
-├── formal/                 # TLA+ specs + verification workflow
-├── INDEX/                  # .gitignored — generated chronological views
-└── planset/                # Architecture decisions + executive docs
-```
+- **Manifest pin**: `manifest.toml` in [`citrate-federation`](https://github.com/CitrateNetwork/citrate-federation) is the canonical truth for which rev of this repo the federation is pinned to.
+- **Upstream runtime**: [`citrate-agent-runtime`](https://github.com/CitrateNetwork/citrate-agent-runtime) is the canonical implementation of `citrate-agent-core`. We consume it via Cargo dependency on `agentile_rev = "..."`. See [`planset/.../ALIGNMENT.md`](planset/2026-05-19-nist-sidecar-v1/ALIGNMENT.md) for the crosswalk that prevents duplication.
+- **On-chain contracts**: live in [`citrate-chain`](https://github.com/CitrateNetwork/citrate-chain) (`OrganizationSBT`, `AgentSBT`, `CapsuleRegistry`, `AnchorRegistry`, `BenchmarkRegistry`). nist-agent does not redeploy them; it speaks to them via a chain-agnostic adapter trait.
+- **Org policy**: [`CitrateNetwork/.github`](https://github.com/CitrateNetwork/.github) holds org-wide SECURITY.md / CONTRIBUTING / AUDIT_POSTURE.md.
 
----
+## Non-negotiables (highlights from the 13)
 
-## The Golden Rules
+See [`citrate-federation/agentile/rules/CORE_RULES.md`](https://github.com/CitrateNetwork/citrate-federation/blob/main/agentile/rules/CORE_RULES.md) for the full text. Highlights particularly load-bearing in this repo:
 
-1. **Plan before you code** — check `sprints/CURRENT.md`, follow the workflow.
-2. **No stubs, no TODOs in production** — every line is production-ready (Rule 11).
-3. **Test count only goes up** — the test ratchet never decreases (Rule 3).
-4. **Audits are immutable** — dated directories, never edited after creation (Rule 6).
-5. **The sprint file is authoritative for status** — not memory, not chat (Rule 9).
-6. **Every document has a timestamp and branch** — Rule 12 frontmatter, no exceptions.
+- **Rule 1.** No mocks / stubs / TODOs in production paths. Mocks live behind `#[cfg(test)]` or feature flags only.
+- **Rule 2.** Test count is monotone non-decreasing across a sprint.
+- **Rule 3.** Audits are immutable; errata go in follow-ups.
+- **Rule 4.** The sprint file in `sprints/active/` is the source of truth for status. Not chat, not memory.
+- **Rule 5 / 12.** Every doc has Rule-12 frontmatter (`created`, `branch`, `author`, `status`).
+- **Rule 9.** One source of truth per topic. Link, don't copy.
+- **Rule 10.** Authorization before destructive ops (force-push, repo delete, secret rotate). The TLA+ ratchet is also Rule-10 in this repo: safety-critical specs must verify in CI before merge.
+- **Rule 11.** Federation manifest is canonical.
 
-For the full rule set, see [rules/CORE_RULES.md](rules/CORE_RULES.md).
-For the named-failure-mode catalog, see
-[docs/methodology/04_FAILURE_MODES.md](docs/methodology/04_FAILURE_MODES.md).
-For the synthesis of how it all works, see
-[docs/methodology/METHODOLOGY.md](docs/methodology/METHODOLOGY.md).
+## Status
 
----
+This file is created or regenerated when:
 
-## Document Timestamp Requirement (Rule 12)
+1. A new federation audit opens.
+2. The repo's tier changes.
+3. The agentile framework conventions change.
+4. The relationship between this repo and `citrate-agent-runtime` shifts (consumer ↔ contributor ↔ fork).
 
-**Every document you create** — journal, essay, case study, ADR, sprint
-file, spec — MUST have this frontmatter:
-
-```markdown
----
-created: YYYY-MM-DDTHH:MM:SSZ
-branch: <current git branch>
-author: <your name or zooid>
-sprint: <sprint ID if applicable>
-status: active | superseded | archived
----
-```
-
-Documents without this frontmatter are pre-rule artifacts (or skeleton-
-ported historical material) and should be treated as **historical
-context only**, not current guidance. When in doubt about whether a
-document reflects current state, check its `branch` and `status`
-fields.
-
-See [rules/CORE_RULES.md](rules/CORE_RULES.md) Rule 12 for the full
-specification.
-
----
-
-## Document Authority
-
-Each topic has one authoritative document. When documents disagree, the
-higher-authority file wins.
-
-| Authority | Document | Scope |
-|-----------|----------|-------|
-| **Foundation** | [`SPIRIT.md`](SPIRIT.md) | Public institutional rule meaning; no-private-language governance |
-| **Foundation** | [`SOUL.md`](SOUL.md) | Values and moral posture |
-| **Foundation** | [`AGENT.md`](AGENT.md) | Human-agent cooperation model and rule interpretation |
-| **Tier 1** | [`CONFIG.md`](CONFIG.md) | Canonical constants for this project |
-| **Tier 1** | [`PRODUCT_SPEC.md`](PRODUCT_SPEC.md) | What the finished product does, module by module |
-| **Tier 1** | [`rules/CORE_RULES.md`](rules/CORE_RULES.md) | Non-negotiable operating rules (0–12) |
-| **Tier 2** | [`sprints/CURRENT.md`](sprints/CURRENT.md) | Live sprint status, scores, test counts |
-| **Tier 2** | [`formal/SPEC_INDEX.md`](formal/SPEC_INDEX.md) | TLA+ spec inventory and verification status |
-| **Tier 3** | Module / package READMEs | Per-module usage, API, test commands |
-| **Tier 3** | Workflow + template docs | Operational procedures |
-| **Historical** | `docs/essays/`, `docs/journals/` | Reflections and learnings — context, not governance |
-
-If a README contradicts CONFIG.md, CONFIG.md is correct. If a guide
-contradicts PRODUCT_SPEC.md, the spec is correct. If an execution rule
-seems to conflict with the institution's intended meaning, read it back
-through SPIRIT.md, SOUL.md, and AGENT.md before interpreting
-optimistically. Essays and journals are never authoritative — they
-document what was true at a point in time.
+Any other change should go to a sibling file in `.agentile/`, not here.
