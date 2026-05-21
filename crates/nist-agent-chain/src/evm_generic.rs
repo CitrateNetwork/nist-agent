@@ -217,10 +217,12 @@ mod tests {
         // 0x1feffc...4a58 → 0x4250675f9015e65fc866f3a373f82bb9dfc000c6.
         // Our derive_address_hex MUST agree.
         let hex_key = "0x1feffc85883856c384f497cf057d38da863eb9b89c545e72fbfd35631eaf4a58";
-        let bytes = hex::decode(hex_key.trim_start_matches("0x")).unwrap();
+        let bytes =
+            hex::decode(hex_key.trim_start_matches("0x")).expect("test fixture hex is valid");
         let mut arr = [0u8; 32];
         arr.copy_from_slice(&bytes);
-        let signing_key = SigningKey::from_bytes(&arr.into()).unwrap();
+        let signing_key = SigningKey::from_bytes(&arr.into())
+            .expect("test fixture key is a valid secp256k1 scalar");
         assert_eq!(
             derive_address_hex(&signing_key).to_lowercase(),
             "4250675f9015e65fc866f3a373f82bb9dfc000c6"
