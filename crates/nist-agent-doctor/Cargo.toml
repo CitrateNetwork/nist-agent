@@ -1,0 +1,22 @@
+[package]
+name = "nist-agent-doctor"
+description = "Doctor pre-flight checks 6–11 for nist-agent per RFC-CIT-AGENT-0001 §10.2. Each check binds to a surface S-1..S-6 built (PolicyBundle validity, network posture, model hash, TLA spec currency, role lattice). Companion to citrate-agent-core::doctor (upstream checks 1, 4, 10, 11)."
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+nist-agent-policy = { path = "../nist-agent-policy" }
+nist-agent-model = { path = "../nist-agent-model" }
+citrate-agent-core = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+ed25519-dalek = { workspace = true }
+
+[dev-dependencies]
+tempfile = "3.10"
