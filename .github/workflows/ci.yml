@@ -136,7 +136,30 @@ jobs:
       - name: Install Rust (deny needs the toolchain to resolve graph)
         uses: dtolnay/rust-toolchain@stable
 
-      - name: cargo deny check
-        uses: EmbarkStudios/cargo-deny-action@v2
+      - name: Install system deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libclang-dev cmake libssl-dev pkg-config
+
+      # We install cargo-deny directly rather than via the
+      # EmbarkStudios/cargo-deny-action because the action runs in a
+      # Docker container that does NOT see the runner's ~/.ssh
+      # config. Our deny.toml's allow-git list references SSH-aliased
+      # federation URLs (github-citrate-agent-runtime, github-citrate-chain),
+      # and resolving them requires the SSH config we wrote in the
+      # earlier step — that lives on the runner host, not inside the
+      # container.
+      #
+      # We intentionally do NOT pin a cargo-deny version: the RUSTSEC
+      # advisory database evolves (e.g. CVSS 4.0 support), and pinning
+      # an older cargo-deny means it can't parse newer advisories. The
+      # consequence is that a cargo-deny minor-version bump might
+      # tighten a check; that's acceptable per Rule 1's intent.
+      # Schema-level breakage is logged in deny.toml's comments.
+      - name: Install cargo-deny
+        uses: taiki-e/install-action@v2
         with:
-          command: check
+          tool: cargo-deny
+
+      - name: cargo deny check
+        run: cargo deny check

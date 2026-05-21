@@ -45,10 +45,59 @@ license-files = [
 ]
 
 [advisories]
+# cargo-deny ≥ 0.16 schema (per
+# https://github.com/EmbarkStudios/cargo-deny/pull/611). Runtime's
+# deny.toml still uses the 0.14 schema ("yanked = deny",
+# "unmaintained = deny", "notice = deny") because its CI pulls an
+# older cargo-deny version. In the new schema:
+#   - `unmaintained`, `unsound`, `notice`, `vulnerability` were all
+#     REMOVED. The strict-by-default behavior (deny all advisories)
+#     is now built in.
+#   - `yanked = "deny"` still accepted.
+#   - `ignore = []` still accepted; populate with RUSTSEC-XXXX-XXXX
+#     entries plus a one-line rationale to allow specific advisories.
 yanked = "deny"
-unmaintained = "deny"
-notice = "deny"
-ignore = []
+# Triage register for RUSTSEC advisories inherited via
+# citrate-agent-core's transitive deps. Two remediation paths:
+#
+#   wasmtime advisories (12): citrate-agent-runtime must bump
+#     wasmtime to a fixed version (likely 28+). Tracked in
+#     nist-agent's S-13 (Trail of Bits) prep checklist; the bump is
+#     prerequisite for the v1.0.0 tag.
+#
+#   unmaintained-crate advisories (5): runtime's transitive deps
+#     pull in stale crates (bincode, derivative, fxhash, paste,
+#     rand_os). Each needs an upstream refactor or substitute.
+#     Tracked in S-13 prep.
+#
+# Every entry has a one-line reason linking the upstream gate.
+# These ignores MUST be empty before the v1.0.0 tag.
+ignore = [
+    # ── wasmtime 26.x vulnerabilities ──────────────────────────
+    { id = "RUSTSEC-2025-0046", reason = "wasmtime: host panic with fd_renumber WASIp1; bump wasmtime in citrate-agent-runtime — S-13" },
+    { id = "RUSTSEC-2025-0118", reason = "wasmtime: unsound API access to shared linear memory; same bump" },
+    { id = "RUSTSEC-2026-0020", reason = "wasmtime: guest-controlled resource exhaustion in WASI; same bump" },
+    { id = "RUSTSEC-2026-0021", reason = "wasmtime: panic on excessive wasi:http/types.fields; same bump" },
+    { id = "RUSTSEC-2026-0085", reason = "wasmtime: panic lifting flags component value; same bump" },
+    { id = "RUSTSEC-2026-0086", reason = "wasmtime: host data leakage with 64-bit tables + Winch; same bump" },
+    { id = "RUSTSEC-2026-0087", reason = "wasmtime: f64x2.splat segfault on Cranelift x86-64; same bump" },
+    { id = "RUSTSEC-2026-0088", reason = "wasmtime: data leakage between pooling allocator instances; same bump" },
+    { id = "RUSTSEC-2026-0089", reason = "wasmtime: Winch table.fill host panic; same bump" },
+    { id = "RUSTSEC-2026-0091", reason = "wasmtime: OOB write transcoding component model strings; same bump" },
+    { id = "RUSTSEC-2026-0092", reason = "wasmtime: panic transcoding misaligned UTF-16; same bump" },
+    { id = "RUSTSEC-2026-0093", reason = "wasmtime: heap OOB in component-model UTF-16→latin1+utf16 transcoding; same bump" },
+    { id = "RUSTSEC-2026-0094", reason = "wasmtime: Winch improperly-masked table.grow return value; same bump" },
+    { id = "RUSTSEC-2026-0095", reason = "wasmtime: Winch sandbox-escape via memory access; same bump" },
+    { id = "RUSTSEC-2026-0096", reason = "wasmtime: aarch64 Cranelift miscompiled guest heap access enables sandbox escape; same bump" },
+    # ── ansi-escape logger advisory ───────────────────────────
+    { id = "RUSTSEC-2025-0055", reason = "ANSI escape logging vulnerability via transitive log dep; remediation tracked in S-13 prep alongside structured-logging migration" },
+    # ── unmaintained transitive crates ────────────────────────
+    { id = "RUSTSEC-2024-0388", reason = "derivative crate unmaintained (via runtime transitive); replace via upstream PR — S-13" },
+    { id = "RUSTSEC-2024-0436", reason = "paste crate unmaintained (via runtime transitive); replace via upstream PR — S-13" },
+    { id = "RUSTSEC-2025-0057", reason = "fxhash crate unmaintained (via runtime transitive); replace via upstream PR — S-13" },
+    { id = "RUSTSEC-2025-0124", reason = "rand_os crate unmaintained (via runtime transitive); replace via upstream PR — S-13" },
+    { id = "RUSTSEC-2025-0141", reason = "bincode unmaintained (via runtime workspace dep); runtime BACKLOG #124-adjacent migration — S-13" },
+]
 
 [bans]
 multiple-versions = "warn"
