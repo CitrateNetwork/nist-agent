@@ -1,0 +1,19 @@
+[package]
+name = "nist-agent-audit-sinks"
+description = "Audit-record storage backends for nist-agent — WORM filesystem sink (FedRAMP High + CJIS eligibility) and NFS/S3 sinks (S-9b). Implements citrate_agent_core::audit::AuditSink."
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+citrate-agent-core = { workspace = true }
+ciborium = { workspace = true }
+serde = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+
+[dev-dependencies]
+tempfile = "3.10"

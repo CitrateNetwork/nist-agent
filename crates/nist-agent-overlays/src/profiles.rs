@@ -125,6 +125,63 @@ pub fn cipa(opts: OverlayBuilder) -> PolicyBundle {
     b
 }
 
+// ── HIPAA / HITECH ───────────────────────────────────────────────
+
+/// HIPAA / HITECH overlay — RFC §2.3.
+///
+/// Per `features/overlays/overlay-hipaa.feature`:
+///   - PHI reads require ComplianceOfficer + Operator quorum even
+///     at risk.tier "low" (escalation enforced at HITL gate; the
+///     bundle just declares the overlay)
+///   - Minimum-necessary policy violations are rejected at the
+///     capsule call site (capsule-level enforcement)
+///   - Unauthenticated PHI access starts a 60-day breach
+///     notification countdown (the harness records the event;
+///     doctor enumerates open countdowns until closed)
+///   - Retention floor: 6 years (matches CMMC-L3 baseline; the
+///     effective floor stays at 6)
+///
+/// Egress posture stays at `Disabled` by default; covered entities
+/// in cloud-connected environments configure their way out via a
+/// signed Security Officer directive (RFC §3.3).
+pub fn hipaa(opts: OverlayBuilder) -> PolicyBundle {
+    let mut b = cmmc_l3_baseline(opts);
+    b.bundle_name = "hipaa-hitech".into();
+    b.overlays.add(Overlay::HipaaHitech);
+    b
+}
+
+// ── FedRAMP High ─────────────────────────────────────────────────
+
+/// FedRAMP High overlay — RFC §2.3.
+///
+/// Per `features/overlays/overlay-fedramp-high.feature`:
+///   - FIDO2 signatures rejected; PIV-CAC required (enforced at
+///     HITL signing-surface check — the policy bundle's
+///     `egress_posture` doesn't carry this; the
+///     `Overlay::FedrampHigh.forbids_mobile_signing()` predicate
+///     drives the enforcement)
+///   - WORM audit storage backend is mandatory — the harness
+///     refuses to activate this bundle if its configured
+///     `AuditSink` isn't WORM-eligible (enforced at start-up
+///     by `nist-agent-audit-sinks::Worm*Sink` selection +
+///     doctor's audit-file-permissions check)
+///   - Mobile signing disabled (`Overlay::FedrampHigh.forbids_mobile_signing()
+///     == true`)
+///   - Retention floor: 3 years (CMMC-L3 baseline keeps effective
+///     floor at 6 years anyway via `effective_floor` MAX)
+///
+/// Default `anchor_strategy` is HybridNightlyPlusCapsule, matching
+/// the RFC §6.3 default for FedRAMP / CMMC deployments. Operators
+/// can dial up to per-approval (Strategy B) via the standard
+/// PolicyBundle update flow.
+pub fn fedramp_high(opts: OverlayBuilder) -> PolicyBundle {
+    let mut b = cmmc_l3_baseline(opts);
+    b.bundle_name = "fedramp-high".into();
+    b.overlays.add(Overlay::FedrampHigh);
+    b
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -185,6 +242,39 @@ mod tests {
         assert_eq!(b.bundle_name, "cipa");
     }
 
+    #[test]
+    fn hipaa_adds_hipaa_on_top_of_cmmc() {
+        let b = hipaa(opts());
+        assert!(b.overlays.is_active(Overlay::CmmcL3));
+        assert!(b.overlays.is_active(Overlay::HipaaHitech));
+        assert_eq!(b.overlays.active().len(), 2);
+        assert_eq!(b.bundle_name, "hipaa-hitech");
+    }
+
+    #[test]
+    fn fedramp_high_adds_overlay_on_top_of_cmmc() {
+        let b = fedramp_high(opts());
+        assert!(b.overlays.is_active(Overlay::CmmcL3));
+        assert!(b.overlays.is_active(Overlay::FedrampHigh));
+        assert_eq!(b.overlays.active().len(), 2);
+        assert_eq!(b.bundle_name, "fedramp-high");
+    }
+
+    #[test]
+    fn fedramp_high_marks_mobile_signing_forbidden() {
+        // The bundle doesn't carry this field; it's a property of
+        // the Overlay enum variant. Test pins the cross-layer
+        // contract: the harness checks
+        // `forbids_mobile_signing()` for each active overlay; if
+        // any returns true, mobile signing is disabled.
+        let b = fedramp_high(opts());
+        assert!(b
+            .overlays
+            .active()
+            .iter()
+            .any(|o| o.forbids_mobile_signing()));
+    }
+
     // ── canonical CBOR round-trip ──
 
     #[test]
@@ -194,6 +284,8 @@ mod tests {
             ("ferpa", ferpa(opts())),
             ("coppa", coppa(opts())),
             ("cipa", cipa(opts())),
+            ("hipaa-hitech", hipaa(opts())),
+            ("fedramp-high", fedramp_high(opts())),
         ] {
             let (raw, sk) = sign(&b);
             let decoded = raw
@@ -212,6 +304,8 @@ mod tests {
             ferpa(opts()),
             coppa(opts()),
             cipa(opts()),
+            hipaa(opts()),
+            fedramp_high(opts()),
         ] {
             b.activate(0, &BTreeMap::new())
                 .unwrap_or_else(|e| panic!("{} activate failed: {e}", b.bundle_name));
@@ -231,6 +325,8 @@ mod tests {
             ferpa(opts()),
             coppa(opts()),
             cipa(opts()),
+            hipaa(opts()),
+            fedramp_high(opts()),
         ] {
             let name = b.bundle_name.clone();
             let (raw, sk) = sign(&b);
@@ -258,6 +354,8 @@ mod tests {
             ferpa(opts()),
             coppa(opts()),
             cipa(opts()),
+            hipaa(opts()),
+            fedramp_high(opts()),
         ] {
             let name = b.bundle_name.clone();
             let (raw, sk) = sign(&b);
@@ -285,6 +383,8 @@ mod tests {
             ferpa(opts()),
             coppa(opts()),
             cipa(opts()),
+            hipaa(opts()),
+            fedramp_high(opts()),
         ] {
             assert!(
                 b.overlays.is_active(Overlay::CmmcL3),
