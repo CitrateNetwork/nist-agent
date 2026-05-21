@@ -2946,6 +2946,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "nist-agent-doctor"
+version = "0.1.0"
+dependencies = [
+ "citrate-agent-core",
+ "ed25519-dalek",
+ "nist-agent-model",
+ "nist-agent-policy",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror 2.0.18",
+ "tracing",
+]
+
+[[package]]
 name = "nist-agent-loop"
 version = "0.1.0"
 dependencies = [
