@@ -1,0 +1,45 @@
+[package]
+name = "nist-agent-cli"
+description = "Operator-facing CLI binary for nist-agent — doctor, model verify/infer, install, wizard, daemon, status. Composed from the workspace's library crates; ships as `citrate-agent` for operator convenience."
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[[bin]]
+name = "citrate-agent"
+path = "src/main.rs"
+
+[dependencies]
+nist-agent-prelude = { path = "../nist-agent-prelude" }
+nist-agent-doctor = { path = "../nist-agent-doctor" }
+nist-agent-model = { path = "../nist-agent-model" }
+nist-agent-release = { path = "../nist-agent-release" }
+nist-agent-policy = { path = "../nist-agent-policy" }
+clap = { workspace = true }
+anyhow = { workspace = true }
+serde_json = { workspace = true }
+sha2 = { workspace = true }
+hex = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { version = "0.3", features = ["fmt", "env-filter"] }
+
+# Slint wizard surfaces — `feat-ui` enables the wizard subcommand by
+# pulling in nist-agent-wizard's feat-ui surface. Default off so the
+# CLI builds without a Slint runtime in CI / air-gap.
+nist-agent-wizard = { path = "../nist-agent-wizard", optional = true }
+
+[dev-dependencies]
+tempfile = "3.10"
+
+[features]
+default = []
+# Pass-through to nist-agent-model so the operator can build the CLI
+# with embedded inference enabled via `--features feat-model-llamacpp`.
+feat-model-llamacpp = ["nist-agent-model/feat-model-llamacpp"]
+# Pass-through to nist-agent-wizard so the operator can build the CLI
+# with the Slint wizard surface enabled via `--features feat-ui`.
+feat-ui = ["dep:nist-agent-wizard", "nist-agent-wizard/feat-ui"]

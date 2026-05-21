@@ -1,0 +1,24 @@
+[package]
+name = "sign-manifest"
+description = "Soft-key release-manifest signer used by .github/workflows/release.yml. The HSM swap-in path is documented at docs/audit/HSM_SEAM.md; the workflow's signer step is the seam."
+version = "0.1.0"
+edition = "2021"
+publish = false
+authors = ["Citrate Network Inc."]
+license = "Apache-2.0"
+# Not a member of the workspace — scripts/release is intentionally
+# standalone so the release pipeline doesn't drag the workspace's
+# heavy dep tree into a tooling crate.
+
+[workspace]
+
+[[bin]]
+name = "sign-manifest"
+path = "src/main.rs"
+
+[dependencies]
+nist-agent-release = { path = "../../crates/nist-agent-release" }
+ed25519-dalek = { version = "2.1", features = ["std"] }
+hex = "0.4"
+clap = { version = "4.5", features = ["derive", "env"] }
+anyhow = "1.0"
