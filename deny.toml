@@ -57,7 +57,18 @@ license-files = [
 #   - `ignore = []` still accepted; populate with RUSTSEC-XXXX-XXXX
 #     entries plus a one-line rationale to allow specific advisories.
 yanked = "deny"
-ignore = []
+ignore = [
+    # Inherited wasmtime 26.x advisories via citrate-agent-core's
+    # transitive pin (runtime/agent/core/Cargo.toml). Resolution
+    # requires citrate-agent-runtime to bump wasmtime; that
+    # upstream-PR is tracked in nist-agent's S-13 prep checklist
+    # because it intersects the Trail of Bits engagement scope.
+    # Each entry: { id = "...", reason = "..." }
+    { id = "RUSTSEC-2026-0093", reason = "wasmtime 26.x heap OOB in component-model UTF-16 transcoding; upstream bump pending in citrate-agent-runtime — Trail of Bits S-13 prep" },
+    { id = "RUSTSEC-2026-0094", reason = "wasmtime 26.x Winch table.grow masking; same upstream bump" },
+    { id = "RUSTSEC-2026-0095", reason = "wasmtime 26.x Winch sandbox-escape; same upstream bump" },
+    { id = "RUSTSEC-2026-0096", reason = "wasmtime 26.x aarch64 Cranelift sandbox-escape; same upstream bump" },
+]
 
 [bans]
 multiple-versions = "warn"

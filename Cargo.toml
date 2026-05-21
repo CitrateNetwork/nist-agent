@@ -25,7 +25,7 @@ rust-version = "1.78"
 #
 # When the federation bumps this rev (via pin-bump.sh), this line
 # is the single edit point.
-citrate-agent-core = { git = "ssh://git@github-citrate-agent-runtime/CitrateNetwork/citrate-agent-runtime", rev = "2591ed2d28780ca7938befe853be7cd1620029cc" }
+citrate-agent-core = { version = "0.4", git = "ssh://git@github-citrate-agent-runtime/CitrateNetwork/citrate-agent-runtime", rev = "2591ed2d28780ca7938befe853be7cd1620029cc" }
 
 # Standard deps mirrored from citrate-agent-runtime so version
 # resolution stays stable. Add to this block instead of crate-local
