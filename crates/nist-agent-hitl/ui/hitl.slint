@@ -1,0 +1,105 @@
+// nist-agent HITL operator surfaces per RFC §8.3.
+//
+// Two panes:
+//   ApprovalQueuePane    — pending proposals list with Sign / Reject
+//   CapsuleInspectorPane — every field from the capsule manifest
+//                          + scroll-tracked Install gate
+//
+// Compiled at build time when feat-ui is enabled (see build.rs).
+// Rust binding in src/ui.rs translates between these and the
+// render models in src/{approval,inspector}.rs.
+
+import { Button, LineEdit, ListView, VerticalBox, HorizontalBox, GroupBox, ScrollView } from "std-widgets.slint";
+
+export struct ApprovalRowVisual {
+    call-id: string,
+    call-display: string,
+    description: string,
+    severity-label: string,
+    args-pretty: string,
+    current-sigs: string,
+    roles-still-required: string,
+}
+
+export struct InspectorFieldVisual {
+    id: string,
+    label: string,
+    value: string,
+    viewed: bool,
+}
+
+export component ApprovalQueuePane inherits Rectangle {
+    in property <[ApprovalRowVisual]> rows;
+    callback sign-clicked(string); // call_id
+    callback reject-clicked(string); // call_id
+
+    VerticalBox {
+        Text {
+            text: "Pending approvals (" + rows.length + ")";
+            font-size: 18px;
+            font-weight: 600;
+        }
+        ListView {
+            for row in root.rows: Rectangle {
+                background: row.severity-label == "critical" ? #ffe6e6 : row.severity-label == "high" ? #fff4e6 : transparent;
+                VerticalBox {
+                    Text { text: row.call-display; font-weight: 600; }
+                    Text { text: row.description; wrap: word-wrap; }
+                    Text { text: "severity: " + row.severity-label; color: #666; }
+                    Text { text: "signed: " + row.current-sigs; color: #666; }
+                    Text { text: "required: " + row.roles-still-required; color: #666; }
+                    Text { text: row.args-pretty; font-family: "monospace"; color: #444; }
+                    HorizontalBox {
+                        Button {
+                            text: "Sign";
+                            clicked => { root.sign-clicked(row.call-id); }
+                        }
+                        Button {
+                            text: "Reject";
+                            clicked => { root.reject-clicked(row.call-id); }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+export component CapsuleInspectorPane inherits Rectangle {
+    in property <[InspectorFieldVisual]> fields;
+    in property <int> fields-total;
+    in property <int> fields-viewed;
+    callback field-scrolled-into-view(string); // id
+    callback install-clicked();
+
+    property <bool> install-allowed: fields-viewed == fields-total && fields-total > 0;
+
+    VerticalBox {
+        Text {
+            text: "Capsule Inspector";
+            font-size: 18px;
+            font-weight: 600;
+        }
+        Text {
+            text: "Fields viewed: " + fields-viewed + " / " + fields-total;
+            color: install-allowed ? #060 : #c60;
+        }
+        ScrollView {
+            VerticalBox {
+                for f in root.fields: Rectangle {
+                    background: f.viewed ? #eef9ee : transparent;
+                    VerticalBox {
+                        Text { text: f.label; font-weight: 600; }
+                        Text { text: f.value; wrap: word-wrap; }
+                    }
+                    init => { root.field-scrolled-into-view(f.id); }
+                }
+            }
+        }
+        Button {
+            text: install-allowed ? "Install" : "Scroll all fields to enable";
+            enabled: install-allowed;
+            clicked => { root.install-clicked(); }
+        }
+    }
+}

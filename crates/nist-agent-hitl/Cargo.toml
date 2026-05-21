@@ -1,0 +1,28 @@
+[package]
+name = "nist-agent-hitl"
+description = "HITL approval queue render models + Capsule Inspector pane per RFC §8.3. Headless typed view models drive the Slint UI (feat-ui) and a future CLI surface."
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+nist-agent-prelude = { path = "../nist-agent-prelude" }
+nist-agent-policy = { path = "../nist-agent-policy" }
+citrate-agent-core = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+hex = { workspace = true }
+
+slint = { version = "1.13", optional = true }
+
+[features]
+default = []
+feat-ui = ["dep:slint"]
+
+[build-dependencies]
+slint-build = "1.13"
