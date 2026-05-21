@@ -31,7 +31,9 @@ pub use citrate_agent_core::{
 /// scenarios in `features/overlays/overlay-activation-ratchet.feature`
 /// and the safety property in `.agentile/formal/DataClassLattice.tla`
 /// (authored in S-2).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize,
+)]
 #[serde(rename_all = "kebab-case")]
 pub enum Overlay {
     /// NIST SP 800-171 Rev 3 + CMMC L3 baseline. Active in every
