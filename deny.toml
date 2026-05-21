@@ -57,17 +57,42 @@ license-files = [
 #   - `ignore = []` still accepted; populate with RUSTSEC-XXXX-XXXX
 #     entries plus a one-line rationale to allow specific advisories.
 yanked = "deny"
+# Triage register for RUSTSEC advisories inherited via
+# citrate-agent-core's transitive deps. Two remediation paths:
+#
+#   wasmtime advisories (12): citrate-agent-runtime must bump
+#     wasmtime to a fixed version (likely 28+). Tracked in
+#     nist-agent's S-13 (Trail of Bits) prep checklist; the bump is
+#     prerequisite for the v1.0.0 tag.
+#
+#   unmaintained-crate advisories (5): runtime's transitive deps
+#     pull in stale crates (bincode, derivative, fxhash, paste,
+#     rand_os). Each needs an upstream refactor or substitute.
+#     Tracked in S-13 prep.
+#
+# Every entry has a one-line reason linking the upstream gate.
+# These ignores MUST be empty before the v1.0.0 tag.
 ignore = [
-    # Inherited wasmtime 26.x advisories via citrate-agent-core's
-    # transitive pin (runtime/agent/core/Cargo.toml). Resolution
-    # requires citrate-agent-runtime to bump wasmtime; that
-    # upstream-PR is tracked in nist-agent's S-13 prep checklist
-    # because it intersects the Trail of Bits engagement scope.
-    # Each entry: { id = "...", reason = "..." }
-    { id = "RUSTSEC-2026-0093", reason = "wasmtime 26.x heap OOB in component-model UTF-16 transcoding; upstream bump pending in citrate-agent-runtime — Trail of Bits S-13 prep" },
-    { id = "RUSTSEC-2026-0094", reason = "wasmtime 26.x Winch table.grow masking; same upstream bump" },
-    { id = "RUSTSEC-2026-0095", reason = "wasmtime 26.x Winch sandbox-escape; same upstream bump" },
-    { id = "RUSTSEC-2026-0096", reason = "wasmtime 26.x aarch64 Cranelift sandbox-escape; same upstream bump" },
+    # ── wasmtime 26.x vulnerabilities ──────────────────────────
+    { id = "RUSTSEC-2025-0046", reason = "wasmtime: host panic with fd_renumber WASIp1; bump wasmtime in citrate-agent-runtime — S-13" },
+    { id = "RUSTSEC-2025-0118", reason = "wasmtime: unsound API access to shared linear memory; same bump" },
+    { id = "RUSTSEC-2026-0020", reason = "wasmtime: guest-controlled resource exhaustion in WASI; same bump" },
+    { id = "RUSTSEC-2026-0021", reason = "wasmtime: panic on excessive wasi:http/types.fields; same bump" },
+    { id = "RUSTSEC-2026-0085", reason = "wasmtime: panic lifting flags component value; same bump" },
+    { id = "RUSTSEC-2026-0086", reason = "wasmtime: host data leakage with 64-bit tables + Winch; same bump" },
+    { id = "RUSTSEC-2026-0087", reason = "wasmtime: f64x2.splat segfault on Cranelift x86-64; same bump" },
+    { id = "RUSTSEC-2026-0088", reason = "wasmtime: data leakage between pooling allocator instances; same bump" },
+    { id = "RUSTSEC-2026-0089", reason = "wasmtime: Winch table.fill host panic; same bump" },
+    { id = "RUSTSEC-2026-0091", reason = "wasmtime: OOB write transcoding component model strings; same bump" },
+    { id = "RUSTSEC-2026-0092", reason = "wasmtime: panic transcoding misaligned UTF-16; same bump" },
+    # ── ansi-escape logger advisory ───────────────────────────
+    { id = "RUSTSEC-2025-0055", reason = "ANSI escape logging vulnerability via transitive log dep; remediation tracked in S-13 prep alongside structured-logging migration" },
+    # ── unmaintained transitive crates ────────────────────────
+    { id = "RUSTSEC-2024-0388", reason = "derivative crate unmaintained (via runtime transitive); replace via upstream PR — S-13" },
+    { id = "RUSTSEC-2024-0436", reason = "paste crate unmaintained (via runtime transitive); replace via upstream PR — S-13" },
+    { id = "RUSTSEC-2025-0057", reason = "fxhash crate unmaintained (via runtime transitive); replace via upstream PR — S-13" },
+    { id = "RUSTSEC-2025-0124", reason = "rand_os crate unmaintained (via runtime transitive); replace via upstream PR — S-13" },
+    { id = "RUSTSEC-2025-0141", reason = "bincode unmaintained (via runtime workspace dep); runtime BACKLOG #124-adjacent migration — S-13" },
 ]
 
 [bans]
