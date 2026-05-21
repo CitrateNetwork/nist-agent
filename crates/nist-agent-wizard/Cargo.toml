@@ -1,0 +1,45 @@
+[package]
+name = "nist-agent-wizard"
+description = "First-run concierge wizard for nist-agent per RFC §8.1. Headless state machine + optional Slint UI (feat-ui). Drives org identity, five-role enrollment, hardware-key enrollment, overlay selection, and signed PolicyBundle emission."
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+nist-agent-policy = { path = "../nist-agent-policy" }
+nist-agent-overlays = { path = "../nist-agent-overlays" }
+nist-agent-prelude = { path = "../nist-agent-prelude" }
+ed25519-dalek = { workspace = true }
+hex = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+ciborium = { workspace = true }
+
+# Slint UI binding — opt-in. Off by default so CI / cargo build
+# stay fast and don't need libfontconfig + libxkbcommon on the
+# runner. Operators building the actual desktop binary enable
+# `--features feat-ui` (or land via the distribution pipeline in
+# S-12 which always builds with feat-ui).
+slint = { version = "1.13", optional = true }
+
+[features]
+default = []
+# Pulls in Slint + the .slint UI compile-time codegen. Adds ~30s
+# to a cold cargo build but gives operators the GUI binary.
+feat-ui = ["dep:slint"]
+
+[build-dependencies]
+# Always built — small codegen-only crate, doesn't pull in the
+# system-lib chain (libfontconfig + libxkbcommon) that the
+# runtime `slint` crate does. The actual codegen invocation in
+# build.rs is gated by CARGO_FEATURE_FEAT_UI so the slint file
+# only compiles when the feature is on.
+slint-build = "1.13"
+
+[dev-dependencies]
+tempfile = "3.10"

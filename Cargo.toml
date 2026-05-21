@@ -13,6 +13,7 @@ members = [
     "crates/nist-agent-doctor",
     "crates/nist-agent-overlays",
     "crates/nist-agent-audit-sinks",
+    "crates/nist-agent-wizard",
 ]
 resolver = "2"
 
