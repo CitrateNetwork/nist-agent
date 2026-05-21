@@ -81,8 +81,8 @@ planset: nist-sidecar-v1
 
 | File | RFC § | TLA+ | Sprint |
 |---|---|---|---|
-| `surface-slint-concierge.feature` | §8.1, §8.2 | — | S-10 |
-| `surface-slint-capsule-inspector.feature` | §8.3 | — | S-10 |
+| `surface-slint-concierge.feature` | §8.1, §8.2 | — | S-10a (wizard) + S-10c (chat) |
+| `surface-slint-capsule-inspector.feature` | §8.3 | — | S-10b |
 | `surface-cli.feature` | §3.2 | — | S-12 |
 | `surface-daemon.feature` | §3.2 | — | S-12 |
 | `surface-wasm-publish.feature` | §3.2 | — | S-12 |
@@ -113,7 +113,9 @@ The set of sprint stubs created in `sprints/backlog/` during S-1 close:
 | S-7 | doctor-checks-6-through-11 | finish RFC §10.2 |
 | S-8 | overlay-bundles-a | CMMC L3, FERPA, COPPA, CIPA |
 | S-9 | overlay-bundles-b | HIPAA, HITECH, FedRAMP High; WORM + NFS/S3 sinks |
-| S-10 | slint-concierge | onboarding wizard, HITL UI, capsule inspector, marketplace |
+| S-10a | slint-concierge-wizard | first-run wizard (org identity, roles, hardware keys, overlay selection, signed PolicyBundle) |
+| S-10b | slint-hitl-and-inspector | HITL approval queue UI + Capsule Inspector pane |
+| S-10c | slint-marketplace-and-chat | capsule marketplace browser + chat surface |
 | S-11 | mobile-companion | iOS + Android signing surface |
 | S-12 | distribution-and-runbooks | reproducible builds, signed releases, GGUF bundle, runbooks |
 | S-13 | trail-of-bits-engagement | external audit + remediation |

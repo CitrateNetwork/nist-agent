@@ -61,9 +61,17 @@ non-Phase-1 overlays (which slip to Phase 1.5 in §11.2).
 - `S-8` — Overlay bundles A: CMMC L3 baseline + FERPA + COPPA + CIPA.
   (RFC §2.3)
 - `S-9` — Overlay bundles B: HIPAA / HITECH + FedRAMP High. (RFC §2.3)
-- `S-10` — Slint concierge. Onboarding wizard, HITL queue UI, capsule
-  inspector, chat surface, marketplace browser, Gemma 4 E2B
-  integration. (RFC §8)
+- `S-10a` — Slint concierge wizard. First-run setup: org identity,
+  five-role enrollment, hardware-key enrollment, overlay selection,
+  PolicyBundle authoring. Gemma 4 E2B drives the conversation copy.
+  (RFC §8.1, §8.2) — split from original S-10 on 2026-05-21.
+- `S-10b` — Slint HITL queue UI + Capsule Inspector pane. The two
+  surfaces every operator action passes through. (RFC §8.3) —
+  split from original S-10.
+- `S-10c` — Slint marketplace browser + chat surface. Browse and
+  install capsules from bundled / site-mirror / on-chain sources;
+  interactive chat drives the agent loop. — split from original
+  S-10.
 - `S-11` — Mobile companion. iOS + Android signing surface; overlay-
   driven enable/disable + TTL. (RFC §5.6, §8)
 - `S-12` — Distribution. Reproducible builds, signed releases, GGUF
