@@ -1,235 +1,166 @@
 ---
-created: 2026-04-30T05:00:00Z
-branch: main
-author: agentile-skeleton
+created: 2026-05-20T00:00:00Z
+branch: feat/s-2-tla-spec-port
+author: Saul Loveman + Claude Opus 4.7 (1M context)
 status: active
 ---
 
-# Formal Verification Workflow
+# TLA+ Verification Workflow
 
-> The 6-step method for adding a TLA+ spec to a feature, audit
-> finding, or remediation WP. This is the canonical sequence.
-> Skipping a step is allowed only when it doesn't apply, and the
-> WP block must say so explicitly.
+> Operator-facing guide for verifying the five normative TLA+ specs
+> locally and in CI. Pair-read with [`README.md`](README.md) (the
+> spec inventory) and [`ADR-002`](../adrs/ADR-002-tla-custody-in-nist-agent.md)
+> (why nist-agent holds canonical custody).
 
-The method exists because the most common failure mode of formal
-verification isn't bad specs — it's specs that get written *after*
-the code, "to document what we already built." Those specs add
-zero correctness signal: they encode the bugs the code already
-ships with. Specs are useful exactly to the extent that they get
-written *before* the code and have a chance to falsify the design
-before any line of implementation is committed.
+## Why TLA+
 
----
+The RFC names five subsystems whose safety properties cannot be
+fully exercised by Gherkin scenarios alone — they're state-machine
+properties that require model checking. TLA+ + TLC explore the
+reachable state space and report whether any reachable state
+violates an invariant. Rule 10 makes this a BLOCKER: a spec that
+regresses to FAIL (or a new spec that fails on first run) blocks
+the merge.
 
-## The six steps
+Gherkin captures *intent* (the operator-visible contract). TLA+
+captures *safety* (the invariants that must hold in every reachable
+state). The CI cross-checks them: scenarios that pass Gherkin but
+violate a TLA+ invariant are the highest-priority bug class in
+this repo.
 
-```
-1. Identify the state machine
-2. Write the spec
-3. Run TLC
-4. Fix the spec until clean
-5. Write the implementation
-6. Add a regression test that re-runs TLC in CI
-```
+## Prerequisites
 
-Steps 1–4 are pre-implementation. Step 5 is the WP's GREEN phase.
-Step 6 is what makes the spec count toward ratchet 2.
+- **Java 17+.** TLA+ tools run on the JVM. `actions/setup-java` in
+  CI; `apt install openjdk-17-jdk` locally on Debian/Ubuntu.
+- **`tla2tools.jar`** (the TLC binary). One file, ~10 MB.
 
----
-
-### Step 1: Identify the state machine
-
-The work that admits formal verification is the work where:
-
-- More than one actor takes actions that affect a shared state.
-- The order of actions can vary in production.
-- The correctness of the system depends on an invariant that
-  must hold across *all* possible orderings.
-
-Identify the actors, the shared state, and the actions. Name them
-in plain English first; the TLA+ encoding comes in step 2.
-
-A useful self-check: write a one-paragraph description of the
-state machine that does NOT use any TLA+ syntax. If you can't,
-you don't yet understand what you're verifying.
-
-**Operator-vs-variable principle.** Distinguish between:
-
-- **Operators** — pure functions of state. Computed, never
-  mutated. Examples: a routing function over a registry, an
-  aggregation function over a vote set.
-- **Variables** — the mutable state itself. Examples: the
-  registry, the vote set, the validator's view number.
-
-Pinning operators as CONSTANTS and variables as VARIABLES at the
-spec level is what bounds TLC's state space. Conflating the two
-produces specs that are intractable to model-check.
-
----
-
-### Step 2: Write the spec
-
-Copy `templates/TLA_SPEC_TEMPLATE.tla` and `.cfg` to your
-project's `specs/tla/<area>/<SpecName>.{tla,cfg}`.
-
-Author:
-
-- **CONSTANTS** for inputs the model takes from the cfg.
-- **VARIABLES** for the mutable state.
-- **Init** for the initial state.
-- **Actions** — one operator per action an actor can take.
-  Convention: parameterize by the actor.
-- **Next** disjuncting over all actions.
-- **Spec** as `Init /\ [][Next]_vars`.
-- **Invariants** — the things you claim are always true.
-
-Bound the state space aggressively. Set sizes of 3–5, step counts
-of 10, validator counts of 7–10 with 2–3 Byzantine. TLC's job is
-to falsify the invariants in a *small* state space — if the bug
-isn't reachable in the small model, scaling up rarely surfaces it
-either.
-
----
-
-### Step 3: Run TLC
+### One-time local install
 
 ```bash
-java -cp tla2tools.jar tlc2.TLC \
-  -config <SpecName>.cfg \
-  -workers <N> \
-  <SpecName>.tla
+mkdir -p ~/.local/share
+curl -L \
+  https://github.com/tlaplus/tlaplus/releases/latest/download/tla2tools.jar \
+  -o ~/.local/share/tla2tools.jar
 ```
 
-Three possible outcomes:
-
-| Outcome | Meaning | Action |
-|---------|---------|--------|
-| **PASS** (no error, "Model checking completed") | Spec is consistent with its invariants in the configured state space | Proceed to step 5 |
-| **FAIL** (invariant violated, with counterexample trace) | Spec or invariant has a real bug | Step 4 |
-| **DEADLOCK** ("Deadlock reached") | Next has no enabled actions in some state | Step 4 |
-| **TIMEOUT / OOM** | State space too large | Tighten constants in the cfg, then re-run |
-
-The counterexample trace from a FAIL is the most valuable output
-TLA+ produces. Read it action by action; the bug is concrete.
-
----
-
-### Step 4: Fix the spec until clean
-
-The fix can be in three places:
-
-1. **The invariant is wrong.** What you claimed was always true
-   isn't. Update the invariant; possibly the design itself is
-   wrong, in which case escalate before step 5.
-2. **The action is wrong.** An action permits a transition the
-   real protocol wouldn't. Tighten the action's preconditions.
-3. **The model is wrong.** A constant should have been a variable
-   (or vice versa); a state-space bound is masking a real bug.
-
-After every change, re-run TLC. Iterate until clean.
-
-If iteration doesn't converge — the spec keeps producing
-counterexamples that look like real bugs in the design — that's
-the most valuable signal TLA+ can give you. **Stop coding.** The
-design has a flaw that needs to be resolved at the design layer.
-Fixing it in code first guarantees you'll re-discover the same
-flaw later as a flaky integration test.
-
----
-
-### Step 5: Write the implementation
-
-Now and only now is the WP's GREEN phase. Implement against the
-spec. The spec is the contract; the code's job is to honor the
-contract.
-
-Practical rule: name the spec's actions as functions or methods
-in the code. `RegisterAdapter` in the spec becomes
-`register_adapter` in the code. Reviewers reading both should be
-able to map line by line.
-
-When the implementation diverges from the spec — and it will, in
-small ways — record the divergence in a code comment that names
-the spec line, and decide deliberately:
-
-- Implementation should change to match the spec, OR
-- Spec should change to match the implementation (which means
-  going back to step 3 with the updated spec).
-
-A divergence that exists silently is a bug waiting to fire.
-
----
-
-### Step 6: Regression test in CI
-
-Add a CI job that runs TLC on every PR. The job:
-
-- Iterates over every `.tla`/`.cfg` pair indexed in
-  `SPEC_INDEX.md` (or under `.agentile/formal/specs/` if the
-  index is auto-generated).
-- Reports PASS / FAIL per spec.
-- Fails the build on any FAIL.
-- Reports the spec count to the ratchet (ratchet 2).
-
-Example shape (pseudocode):
+Then add an alias for convenience:
 
 ```bash
-for spec in $(find .agentile/formal/specs -name '*.tla'); do
-  cfg="${spec%.tla}.cfg"
-  java -cp tla2tools.jar tlc2.TLC -config "$cfg" -workers 4 "$spec"
+# in ~/.bashrc or ~/.zshrc
+alias tlc='java -jar ~/.local/share/tla2tools.jar'
+```
+
+## Verifying a single spec
+
+From the repo root:
+
+```bash
+java -jar ~/.local/share/tla2tools.jar -workers auto \
+  -config .agentile/formal/specs/agent/ApprovalStateMachine.cfg \
+  .agentile/formal/specs/agent/ApprovalStateMachine.tla
+```
+
+Successful output ends with `Model checking completed. No error has
+been found.` and reports the number of distinct states explored.
+Compare against [`README.md`](README.md)'s state-count column — a
+significant drop may indicate the `.cfg` lost a constant or the
+spec accidentally narrowed.
+
+## Verifying all five specs
+
+```bash
+for s in .agentile/formal/specs/agent/*.tla; do
+  echo "=== $(basename $s .tla) ==="
+  java -jar ~/.local/share/tla2tools.jar -workers auto \
+    -config "${s%.tla}.cfg" "$s" \
+    || { echo "FAILED: $s"; exit 1; }
 done
 ```
 
-The CI job is what makes the spec count toward the ratchet.
-Without it, the spec is a write-once document that drifts from
-the implementation as the code changes. Specs that aren't run
-are worse than no specs — they create false confidence.
+## CI workflow
 
----
+`.github/workflows/tla-verify.yml` runs the same loop on every PR.
+The job:
 
-## Deep verification
+1. Installs JDK 17 via `actions/setup-java`.
+2. Downloads `tla2tools.jar` from the official tlaplus/tlaplus
+   release artifact (cached across runs).
+3. Runs TLC against every `.tla` file under
+   `.agentile/formal/specs/`.
+4. Exits non-zero on any spec's failure → BLOCKER per Rule 10.
 
-Some specs benefit from periodic deep runs: larger state spaces,
-longer run times, possibly distributed-TLC. Schedule these
-nightly or weekly, not per-PR.
+The separate `spec-ratchet` job in `ratchet-check.yml` enforces the
+*count* floor (Rule 10's secondary axis): the number of specs never
+decreases below the baseline in `.agentile/coverage/baseline.json`.
 
-A typical setup:
+## Adding a new spec
 
-| Cadence | State-space scale | When to use |
-|---------|-------------------|-------------|
-| Per-PR | Small (Sets size 3–5) | Catch regressions during development |
-| Nightly | Medium (Sets size 5–8) | Catch bugs the small model misses |
-| Pre-release | Large (Sets size 8–12) | Final-confidence run before tagging |
+1. Author `<Name>.tla` and `<Name>.cfg` in
+   `.agentile/formal/specs/agent/`.
+2. Add the spec to [`README.md`](README.md)'s inventory table.
+3. Bump `specs.count` in `.agentile/coverage/baseline.json`.
+4. Verify locally with the command above.
+5. PR — `tla-verify.yml` runs the spec; `spec-ratchet` enforces
+   the new baseline.
 
-Record the deep-verification command in `BASELINE.md` next to the
-per-PR command.
+## Removing or replacing a spec
 
----
+Per Rule 10, a spec can only be removed if a corrected replacement
+lands in the **same commit**. Concretely:
 
-## Anti-patterns
+- Update `<Name>.tla` to the corrected version.
+- Update the `README.md` row.
+- The replacement MUST verify in CI.
+- The PR description names the prior `.tla`'s file hash so the
+  removal is traceable in `git log`.
 
-- **Specs after the code.** The spec encodes existing bugs
-  rather than catching them. Write the spec first or accept
-  that you're writing documentation, not verification.
-- **Untested specs.** A `.tla` that exists but isn't run in CI
-  is a write-once document. Index it and run it, or delete it.
-- **State-space inflation.** Increasing constants until TLC OOMs
-  in the hope of "stronger" verification. The state space exists
-  to bound exploration; very large state spaces don't find more
-  bugs, they find the same bugs more slowly. Use a small space
-  for development, a deep space for pre-release.
-- **Pet specs.** Specs that nobody but their author understands.
-  A spec that can't be read by a teammate isn't verifying
-  anything except the author's preferences. Add comments,
-  document the operator-vs-variable choices, and pair-review.
+A spec may NOT be removed because it's slow or flaky. Slow specs
+get their `.cfg` tightened (bound state space) or a separate longer
+CI budget — never deletion.
 
----
+## TLC budgets and timeouts
 
-## See also
+The default CI budget is 180 seconds × 4 workers × 2,500 MB heap.
+The five normative specs all fit within this budget per the archive
+baseline:
 
-- `README.md` — what `formal/` is for
-- `SPEC_INDEX.md` — the project's spec inventory
-- `templates/TLA_SPEC_TEMPLATE.tla` — starting point
-- `coverage/GATES.md` ratchet 2 — enforcement
-- `CORE_RULES.md` Rule 10 — when verification is required
+- `ApprovalStateMachine` — 336,292 states (≈ 60 s)
+- `AuditChainIntegrity` — 35,435 states (≈ 10 s)
+- `CapsuleInstallGate` — 2,600 states (≈ 2 s)
+- `DataClassLattice` — small bounded model (≈ 5 s)
+- `BreakGlassPath` — small bounded model (≈ 5 s)
+
+If a future spec exceeds the default budget, the options (in order
+of preference) are:
+
+1. Tighten the `.cfg` (lower CONSTANT cardinalities, add
+   StateConstraint).
+2. Add SYMMETRY where state-space-equivalent permutations exist.
+3. Move the spec to a separate `tla-verify-slow.yml` workflow that
+   runs nightly rather than per-PR.
+4. Document as `BOUNDED_EXPLORATION` (TIMEOUT with zero violations
+   after ≥ 4M states explored) — same pattern as the archive's
+   `TLC_BASELINE.md` uses for `AuditTrailIntegrity` and others.
+
+Option 4 is a last resort and requires a sprint-level decision.
+
+## Troubleshooting
+
+### TLC reports `Module name MyModule is inconsistent with file name`
+
+The TLA+ module declaration `MODULE Foo` must match the filename
+`Foo.tla`. Fix the `MODULE` line, not the filename — readers
+search by RFC-aligned filename.
+
+### TLC reports `Cannot find module`
+
+The spec uses `EXTENDS` to import another spec. If the imported
+spec isn't in the same directory or in `tla2tools.jar`'s standard
+library, TLC can't find it. Move the import to the same directory
+or add to `tla2tools.jar`'s classpath.
+
+### Verification hangs past the CI budget
+
+Either: tighten the `.cfg`, or add the spec to the slow-run track.
+Don't increase the per-PR budget without a sprint-level decision —
+slow PRs degrade developer experience and CI throughput.
