@@ -2996,6 +2996,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "nist-agent-overlays"
+version = "0.1.0"
+dependencies = [
+ "ed25519-dalek",
+ "nist-agent-doctor",
+ "nist-agent-policy",
+ "nist-agent-prelude",
+ "serde",
+ "thiserror 2.0.18",
+ "tracing",
+]
+
+[[package]]
 name = "nist-agent-policy"
 version = "0.1.0"
 dependencies = [

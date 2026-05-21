@@ -11,6 +11,7 @@ members = [
     "crates/nist-agent-loop",
     "crates/nist-agent-policy",
     "crates/nist-agent-doctor",
+    "crates/nist-agent-overlays",
 ]
 resolver = "2"
 
