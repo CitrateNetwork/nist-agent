@@ -21,5 +21,5 @@
 pub mod profiles;
 pub mod retention;
 
-pub use profiles::{cipa, cmmc_l3_baseline, coppa, ferpa, OverlayBuilder};
+pub use profiles::{cipa, cmmc_l3_baseline, coppa, fedramp_high, ferpa, hipaa, OverlayBuilder};
 pub use retention::retention_floor;

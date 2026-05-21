@@ -2930,6 +2930,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "nist-agent-audit-sinks"
+version = "0.1.0"
+dependencies = [
+ "ciborium",
+ "citrate-agent-core",
+ "serde",
+ "tempfile",
+ "thiserror 2.0.18",
+ "tracing",
+]
+
+[[package]]
 name = "nist-agent-chain"
 version = "0.1.0"
 dependencies = [
