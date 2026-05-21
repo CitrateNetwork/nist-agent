@@ -101,11 +101,20 @@ with the `trait ChainClient`.
 
 ### WP-3.5 — Flip path-dep to git pin
 
-Acceptance: `Cargo.toml` references
-`citrate-agent-core` via git URL + rev from
-`citrate-federation/manifest.toml` (rev =
-`2591ed2d28780ca7938befe853be7cd1620029cc` at S-1 close);
-`cargo build --workspace` green; `Cargo.lock` committed.
+Acceptance: `crates/nist-agent-prelude/Cargo.toml` references
+`citrate-agent-core` via git URL + rev = manifest's
+`[repos.citrate-agent-runtime].rev`
+(`2591ed2d28780ca7938befe853be7cd1620029cc` at S-1 close);
+`cargo build --workspace` green; `Cargo.lock` committed; the
+federation `[[drift]]` entry for this pin (landed in
+`citrate-federation` commit `5759beb`, 2026-05-20) goes green when
+`./scripts/drift-check.sh` is run from `citrate-federation/`.
+
+Rule-12 note: the drift entry was landed FIRST (2026-05-20, before
+this Cargo.toml exists), per federation Rule 12. The acceptance for
+WP-3.5 includes "drift-check.sh exits 0 for the citrate-agent-core
+pin" once the file lands. The `citrate-wallet-core` drift entry
+(also landed in `5759beb`) is honored at S-4, not here.
 
 ### WP-3.6 — Capture test-count baseline
 
