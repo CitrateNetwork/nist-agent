@@ -34,15 +34,57 @@ jobs:
         with:
           python-version: '3.11'
 
-      # Project-specific tooling setup goes here. The skeleton ships a
-      # placeholder — projects extend this job with the test runner(s)
-      # their canonical command needs (cargo, vitest, pytest, forge, ...).
-      # Example:
-      #   - name: Set up Rust toolchain
-      #     uses: dtolnay/rust-toolchain@stable
-      #
-      # If `baseline.json` has an empty `tests.command`, the ratchet is
-      # a no-op and the toolchain step is skipped.
+      # nist-agent's canonical test command is `cargo test --workspace`,
+      # which requires the Rust toolchain plus deploy-key access to two
+      # private federation repos (citrate-agent-runtime and citrate-chain).
+      # The same SSH config + secrets used by .github/workflows/ci.yml.
+      - name: Configure SSH deploy keys for federation deps
+        env:
+          AGENT_RUNTIME_DEPLOY_KEY: ${{ secrets.AGENT_RUNTIME_DEPLOY_KEY }}
+          CHAIN_DEPLOY_KEY: ${{ secrets.CHAIN_DEPLOY_KEY }}
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
+          umask 077
+          printf '%s\n' "$AGENT_RUNTIME_DEPLOY_KEY" > ~/.ssh/citrate-agent-runtime-readonly
+          chmod 600 ~/.ssh/citrate-agent-runtime-readonly
+          printf '%s\n' "$CHAIN_DEPLOY_KEY" > ~/.ssh/citrate-chain-readonly
+          chmod 600 ~/.ssh/citrate-chain-readonly
+          cat > ~/.ssh/config <<'SSHEOF'
+          Host github-citrate-agent-runtime
+              HostName github.com
+              User git
+              IdentityFile ~/.ssh/citrate-agent-runtime-readonly
+              IdentitiesOnly yes
+              StrictHostKeyChecking accept-new
+          Host github-citrate-chain
+              HostName github.com
+              User git
+              IdentityFile ~/.ssh/citrate-chain-readonly
+              IdentitiesOnly yes
+              StrictHostKeyChecking accept-new
+          SSHEOF
+          chmod 600 ~/.ssh/config
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install system deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libclang-dev cmake libssl-dev pkg-config
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
 
       - name: Test count ratchet
         run: ./scripts/ci/check_test_ratchet.py

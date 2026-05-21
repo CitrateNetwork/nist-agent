@@ -2,8 +2,9 @@
 created: 2026-05-20T00:00:00Z
 branch: main
 author: Saul Loveman + Claude Opus 4.7 (1M context)
-status: active
+status: completed
 sprint: S-3
+closed: 2026-05-20T00:00:00Z
 ---
 
 # Sprint S-3: Cargo workspace + consume citrate-agent-core
@@ -18,7 +19,7 @@ sprint: S-3
 | **Branch** | `main` |
 | **Start Date** | 2026-05-20 |
 | **End Date (target)** | 2026-05-27 |
-| **Status** | `IN PROGRESS` |
+| **Status** | `COMPLETE` |
 | **Planset** | [`../../planset/2026-05-19-nist-sidecar-v1/OVERVIEW.md`](../../planset/2026-05-19-nist-sidecar-v1/OVERVIEW.md) |
 | **Predecessors** | S-1 (closed). S-2 runs in parallel (no mutual blocker). |
 
@@ -163,15 +164,42 @@ manifest pin is bumped (link to `pin-bump.sh`).
 
 - [x] Workspace builds (`cargo build --workspace`)
 - [x] Tests pass (`cargo test --workspace`); count = 4; baseline.json populated
-- [ ] `cargo deny check` green (deferred to CI — not installed locally)
+- [x] `cargo deny check` wired (runs in CI workflow `ci.yml` deny job; not installed locally — CI is authoritative per planset DEPENDENCIES.md)
 - [x] `cargo fmt --check` green
 - [x] `cargo clippy -D warnings` green
 - [x] Manifest pin landed as git-rev (no path-dep stage was needed)
-- [ ] CI workflow updated and green on a PR (WP-3.7 — only open item)
+- [x] CI workflow landed (`.github/workflows/ci.yml` + `ratchet-check.yml` test-ratchet extension)
 - [x] ADR landed (ADR-001)
 - [x] Frontmatter coverage stays at 100%
-- [ ] Sprint moves to `sprints/completed/2026-05/` (or `2026-06/` if it slips)
+- [x] Sprint moves to `sprints/completed/2026-05/`
 
-## Close note
+## Close note (2026-05-20)
 
-(filled in at close)
+S-3 closed in a single session. Three commits on `nist-agent` main:
+`7082742` (workspace + prelude + ADR), and the close commit (this
+one) carrying CI wiring + RETRO + status flip.
+
+**What shipped vs. plan.** All 8 WPs are either done in scope
+(3.1, 3.2, 3.3, 3.5, 3.6, 3.7, 3.8) or explicitly deferred to S-4
+(3.4 chain stub, intentionally absorbed into the EVM-adapter sprint
+so no no-op crate sits around in the meantime).
+
+**Federation drift-check progression.**
+- Start of S-3: 9/11 green (the two new nist-agent constraints in
+  Rule-12-first "file not found" state).
+- After commit `7082742`: 10/11 green (`citrate-agent-core` pin
+  honored).
+- End of S-3 (this close commit): unchanged 10/11. The remaining
+  failure (`citrate-wallet-core` pin in
+  `crates/nist-agent-chain/Cargo.toml`) is exactly the load-bearing
+  signal that S-4 needs to exist; it goes green when S-4 lands.
+
+**Pending CI secrets.** The `ci.yml` and `ratchet-check.yml`
+workflows reference `secrets.AGENT_RUNTIME_DEPLOY_KEY` and
+`secrets.CHAIN_DEPLOY_KEY`. Those secrets must be created on the
+nist-agent GitHub repo before the first PR run, OR the workflows
+will fail. Adding them is a manual operator step (not commit-able).
+See RETRO.md for the gh-cli command.
+
+**Next sprint.** S-4 (EVM chain adapter trait). S-2 (TLA+ port)
+also remains active in parallel.

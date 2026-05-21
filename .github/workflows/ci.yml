@@ -1,0 +1,142 @@
+name: CI
+
+# Rust quality gates: fmt, clippy, build, deny.
+# cargo test runs in the test-ratchet job of ratchet-check.yml so the
+# test-count baseline and the actual test run share a single cargo
+# invocation.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.head.ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  rust:
+    name: cargo fmt / clippy / build / deny
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      # nist-agent consumes citrate-agent-core from
+      # CitrateNetwork/citrate-agent-runtime (private), which itself
+      # pulls citrate-wallet-core from CitrateNetwork/citrate-chain
+      # (private). We need readonly deploy keys for BOTH because
+      # cargo fetches the transitive citrate-chain dep too.
+      #
+      # Secrets required on this repo:
+      #   AGENT_RUNTIME_DEPLOY_KEY — readonly deploy key on
+      #                              CitrateNetwork/citrate-agent-runtime
+      #   CHAIN_DEPLOY_KEY         — readonly deploy key on
+      #                              CitrateNetwork/citrate-chain
+      - name: Configure SSH deploy keys for federation deps
+        env:
+          AGENT_RUNTIME_DEPLOY_KEY: ${{ secrets.AGENT_RUNTIME_DEPLOY_KEY }}
+          CHAIN_DEPLOY_KEY: ${{ secrets.CHAIN_DEPLOY_KEY }}
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
+          umask 077
+          printf '%s\n' "$AGENT_RUNTIME_DEPLOY_KEY" > ~/.ssh/citrate-agent-runtime-readonly
+          chmod 600 ~/.ssh/citrate-agent-runtime-readonly
+          printf '%s\n' "$CHAIN_DEPLOY_KEY" > ~/.ssh/citrate-chain-readonly
+          chmod 600 ~/.ssh/citrate-chain-readonly
+          cat > ~/.ssh/config <<'SSHEOF'
+          Host github-citrate-agent-runtime
+              HostName github.com
+              User git
+              IdentityFile ~/.ssh/citrate-agent-runtime-readonly
+              IdentitiesOnly yes
+              StrictHostKeyChecking accept-new
+          Host github-citrate-chain
+              HostName github.com
+              User git
+              IdentityFile ~/.ssh/citrate-chain-readonly
+              IdentitiesOnly yes
+              StrictHostKeyChecking accept-new
+          SSHEOF
+          chmod 600 ~/.ssh/config
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy,rustfmt
+
+      - name: Install system deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libclang-dev cmake libssl-dev pkg-config
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: cargo fmt --check
+        run: cargo fmt --all -- --check
+
+      - name: cargo clippy
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+
+      - name: cargo build
+        run: cargo build --workspace --locked
+
+  deny:
+    name: cargo deny check (Rule 1 supply chain)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure SSH deploy keys for federation deps
+        env:
+          AGENT_RUNTIME_DEPLOY_KEY: ${{ secrets.AGENT_RUNTIME_DEPLOY_KEY }}
+          CHAIN_DEPLOY_KEY: ${{ secrets.CHAIN_DEPLOY_KEY }}
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
+          umask 077
+          printf '%s\n' "$AGENT_RUNTIME_DEPLOY_KEY" > ~/.ssh/citrate-agent-runtime-readonly
+          chmod 600 ~/.ssh/citrate-agent-runtime-readonly
+          printf '%s\n' "$CHAIN_DEPLOY_KEY" > ~/.ssh/citrate-chain-readonly
+          chmod 600 ~/.ssh/citrate-chain-readonly
+          cat > ~/.ssh/config <<'SSHEOF'
+          Host github-citrate-agent-runtime
+              HostName github.com
+              User git
+              IdentityFile ~/.ssh/citrate-agent-runtime-readonly
+              IdentitiesOnly yes
+              StrictHostKeyChecking accept-new
+          Host github-citrate-chain
+              HostName github.com
+              User git
+              IdentityFile ~/.ssh/citrate-chain-readonly
+              IdentitiesOnly yes
+              StrictHostKeyChecking accept-new
+          SSHEOF
+          chmod 600 ~/.ssh/config
+
+      - name: Install Rust (deny needs the toolchain to resolve graph)
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: cargo deny check
+        uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          command: check
