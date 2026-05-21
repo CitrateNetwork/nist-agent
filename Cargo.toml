@@ -9,6 +9,7 @@ members = [
     "crates/nist-agent-chain",
     "crates/nist-agent-model",
     "crates/nist-agent-loop",
+    "crates/nist-agent-policy",
 ]
 resolver = "2"
 
@@ -55,3 +56,5 @@ reqwest = { version = "0.12", default-features = false, features = ["json", "rus
 futures = "0.3"
 tokio-stream = "0.1"
 url = "2.5"
+ciborium = "0.2"  # canonical CBOR for PolicyBundle (RFC 8949 §4.2.1)
+ed25519-dalek = { version = "2.1", features = ["std"] }  # SecurityOfficer signature verification on bundles

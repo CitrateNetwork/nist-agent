@@ -2981,6 +2981,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "nist-agent-policy"
+version = "0.1.0"
+dependencies = [
+ "ciborium",
+ "ed25519-dalek",
+ "hex",
+ "nist-agent-prelude",
+ "serde",
+ "serde_json",
+ "sha2",
+ "thiserror 2.0.18",
+ "tracing",
+]
+
+[[package]]
 name = "nist-agent-prelude"
 version = "0.1.0"
 dependencies = [

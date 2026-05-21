@@ -1,0 +1,20 @@
+[package]
+name = "nist-agent-policy"
+description = "Signed PolicyBundle + data-class lattice + overlay activation ratchet for nist-agent. Implements RFC-CIT-AGENT-0001 §2.3, §3.1, §5.2, §7.2. Canonical CBOR encoding per RFC 8949 §4.2.1; Ed25519 verification of SecurityOfficer signature."
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+nist-agent-prelude = { path = "../nist-agent-prelude" }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+sha2 = { workspace = true }
+hex = { workspace = true }
+ciborium = { workspace = true }
+ed25519-dalek = { workspace = true }
