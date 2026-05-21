@@ -1,0 +1,167 @@
+// nist-agent first-run concierge — Slint UI scaffold.
+//
+// This file is compiled at build time when the `feat-ui` Cargo
+// feature is enabled (see Cargo.toml + build.rs). The Rust binding
+// in src/ui.rs translates between this UI and the headless
+// `Wizard` state machine in src/wizard.rs.
+//
+// Five panes mirror the wizard's five non-terminal steps:
+//
+//   OrgIdentityPane   →  set org name + DID
+//   RolesPane         →  enroll DIDs for the five base roles
+//   HardwareKeysPane  →  paste in hardware-key fingerprints
+//   OverlaysPane      →  pick additional overlays
+//   ReviewPane        →  read-only summary + Sign button
+//
+// All visual styling stays minimal here. Polish lands in S-10c
+// alongside the chat surface.
+
+import { Button, LineEdit, ListView, VerticalBox, HorizontalBox, GroupBox, CheckBox, ComboBox } from "std-widgets.slint";
+
+export struct RoleEntry {
+    role-name: string,
+    dids: [string],
+}
+
+export struct OverlayEntry {
+    name: string,
+    description: string,
+    active: bool,
+}
+
+export component WizardWindow inherits Window {
+    title: "nist-agent — first run setup";
+    preferred-width: 720px;
+    preferred-height: 600px;
+
+    in-out property <int> step: 0;
+    in-out property <string> org-name;
+    in-out property <string> org-did;
+    in-out property <[RoleEntry]> roles;
+    in-out property <[OverlayEntry]> overlays;
+    in-out property <string> output-path;
+    in-out property <string> status-message;
+
+    callback begin-clicked();
+    callback org-identity-submitted(string, string);
+    callback role-add-clicked(string, string, string); // role, did, label
+    callback finish-roles-clicked();
+    callback hardware-key-add-clicked(string, string, string, string); // role, did, surface, fp
+    callback finish-hardware-keys-clicked();
+    callback overlay-toggle(string); // overlay name (matches Overlay enum kebab-case)
+    callback finish-overlays-clicked();
+    callback sign-clicked();
+
+    VerticalBox {
+        Text {
+            text: "nist-agent first-run setup";
+            font-size: 20px;
+            font-weight: 600;
+        }
+        Text {
+            text: "Step " + step + " of 5";
+            color: #888;
+        }
+
+        // Pane container; the state machine drives `step` to
+        // show one pane at a time. Slint's `if` blocks are
+        // cheap so we let the UI flatten all five.
+        if step == 0: GroupBox {
+            title: "Welcome";
+            VerticalBox {
+                Text {
+                    text: "This wizard will guide you through the five steps to deploy nist-agent for your organization. The result is a signed PolicyBundle you can install on every harness instance.";
+                    wrap: word-wrap;
+                }
+                Button {
+                    text: "Begin";
+                    clicked => { root.begin-clicked(); }
+                }
+            }
+        }
+        if step == 1: GroupBox {
+            title: "Organization identity";
+            VerticalBox {
+                Text { text: "Organization name"; }
+                LineEdit {
+                    text <=> root.org-name;
+                    placeholder-text: "Your school district, agency, or company";
+                }
+                Text { text: "Organization DID"; }
+                LineEdit {
+                    text <=> root.org-did;
+                    placeholder-text: "did:citrate:org:0x...";
+                }
+                Button {
+                    text: "Next: Roles";
+                    enabled: root.org-name != "" && root.org-did != "";
+                    clicked => { root.org-identity-submitted(root.org-name, root.org-did); }
+                }
+            }
+        }
+        if step == 2: GroupBox {
+            title: "Role enrollment (5 base roles required)";
+            VerticalBox {
+                Text { text: "Assign at least one identity to each role. See cmmc-l3/RUNBOOK.md for guidance."; wrap: word-wrap; }
+                ListView {
+                    for r in root.roles: HorizontalBox {
+                        Text { text: r.role-name; min-width: 160px; }
+                        Text { text: r.dids.length > 0 ? "✓ assigned (" + r.dids.length + ")" : "✗ unfilled"; }
+                    }
+                }
+                Button {
+                    text: "Next: Hardware keys";
+                    clicked => { root.finish-roles-clicked(); }
+                }
+            }
+        }
+        if step == 3: GroupBox {
+            title: "Hardware-key enrollment";
+            VerticalBox {
+                Text { text: "Paste the fingerprint each approver will sign with. FIDO2, PIV-CAC, or Secure-Enclave depending on the role's overlay-defined eligibility."; wrap: word-wrap; }
+                Button {
+                    text: "Next: Overlays";
+                    clicked => { root.finish-hardware-keys-clicked(); }
+                }
+            }
+        }
+        if step == 4: GroupBox {
+            title: "Overlay selection";
+            VerticalBox {
+                Text { text: "CMMC-L3 baseline is always active. Toggle additional overlays as needed."; wrap: word-wrap; }
+                for ov in root.overlays: HorizontalBox {
+                    CheckBox {
+                        text: ov.name;
+                        checked: ov.active;
+                        toggled => { root.overlay-toggle(ov.name); }
+                    }
+                    Text { text: ov.description; color: #888; }
+                }
+                Button {
+                    text: "Next: Review";
+                    clicked => { root.finish-overlays-clicked(); }
+                }
+            }
+        }
+        if step == 5: GroupBox {
+            title: "Review and sign";
+            VerticalBox {
+                Text { text: "Output path: " + root.output-path; }
+                Text { text: "All five roles assigned: yes"; }
+                Text { text: "Active overlays: " + root.overlays.length; }
+                Button {
+                    text: "Sign and write bundle";
+                    clicked => { root.sign-clicked(); }
+                }
+            }
+        }
+        if step == 6: GroupBox {
+            title: "Done";
+            VerticalBox {
+                Text { text: "Signed PolicyBundle written to disk. Run citrate-agent doctor to verify."; wrap: word-wrap; }
+            }
+        }
+
+        Text { text: root.status-message; color: #c00; }
+    }
+}

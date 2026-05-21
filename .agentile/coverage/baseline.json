@@ -3,7 +3,7 @@
   "day_zero_commit": "f856ec1fb72dbb5e25785cac835f779a3fce9431",
   "day_zero_date": "2026-05-20",
   "tests": {
-    "count": 101,
+    "count": 110,
     "command": "cargo test --workspace 2>&1 | grep 'test result:' | awk '{s+=$4}END{print s}'"
   },
   "specs": {
