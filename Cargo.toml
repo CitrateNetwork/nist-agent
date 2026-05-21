@@ -7,6 +7,8 @@
 members = [
     "crates/nist-agent-prelude",
     "crates/nist-agent-chain",
+    "crates/nist-agent-model",
+    "crates/nist-agent-loop",
 ]
 resolver = "2"
 
@@ -47,4 +49,9 @@ thiserror = "2.0"
 async-trait = "0.1"
 k256 = { version = "0.13", features = ["ecdsa"] }
 sha3 = "0.10"
+sha2 = "0.10"  # SHA-256 for NIST SI-7 model file integrity verification
 hex = "0.4"
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+futures = "0.3"
+tokio-stream = "0.1"
+url = "2.5"
