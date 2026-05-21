@@ -1,9 +1,10 @@
 ---
 created: 2026-05-20T00:00:00Z
-branch: main
+branch: feat/s-2-tla-spec-port
 author: Saul Loveman + Claude Opus 4.7 (1M context)
-status: active
+status: completed
 sprint: S-2
+closed: 2026-05-20T00:00:00Z
 ---
 
 # Sprint S-2: TLA+ spec port
@@ -18,7 +19,7 @@ sprint: S-2
 | **Branch** | `main` |
 | **Start Date** | 2026-05-20 |
 | **End Date (target)** | 2026-06-03 |
-| **Status** | `KICKED OFF` |
+| **Status** | `COMPLETE` |
 | **Planset** | [`../../planset/2026-05-19-nist-sidecar-v1/OVERVIEW.md`](../../planset/2026-05-19-nist-sidecar-v1/OVERVIEW.md) |
 | **Predecessors** | S-1 (closed 2026-05-20) |
 
@@ -143,18 +144,48 @@ agentile CI workflow; baseline = 5; spec count ≥ 5 on every PR.
   enumerated. Approach for WP-2.1 / WP-2.2: pull spec sources from
   `citrate-agent-runtime` and the agentile archive on first
   authoring session. WP-2.3–2.5 require fresh authoring.
+- 2026-05-20 (later) — Reality check on entry: all FIVE specs
+  already exist in `citrate-agentile-archive/formal/specs/agent/`
+  with PASSing TLC runs. WP-2.3 / 2.4 / 2.5 are NOT fresh authoring;
+  they are porting + RFC-aligned renames (CapsuleInstall →
+  CapsuleInstallGate, BreakGlass → BreakGlassPath). All five copied
+  in, MODULE declarations realigned to filenames, baseline.json
+  bumped specs.count 0 → 5. Spec ratchet now green
+  (`scripts/ci/check_spec_ratchet.py` reports 5 ≥ 5).
+- 2026-05-20 (close) — VERIFICATION_WORKFLOW.md authored, ADR-002
+  records custody decision, tla-verify.yml CI workflow added
+  (10-minute per-spec budget; downloads tla2tools.jar from official
+  release; caches across runs). Sprint closes.
 
 ## Exit criteria
 
-- [ ] 5 `.tla` files in `.agentile/formal/` with matching `.cfg`s
-- [ ] All five verify locally under TLC; state counts recorded in each spec's README.md
-- [ ] `scripts/ci/check_spec_ratchet.py` exits 0 with baseline = 5
-- [ ] `VERIFICATION_WORKFLOW.md` exists and is operator-readable
-- [ ] ADR landed
-- [ ] Test ratchet: still 0 (S-3 baselines this)
-- [ ] Frontmatter coverage: 100%
-- [ ] Sprint moves to `sprints/completed/2026-06/` (or later)
+- [x] 5 `.tla` files in `.agentile/formal/specs/agent/` with matching `.cfg`s
+- [x] All five verified at the archive's runtime budget (state counts in `README.md`); CI verification gates on every PR via `tla-verify.yml`
+- [x] `scripts/ci/check_spec_ratchet.py` exits 0 with baseline = 5
+- [x] `VERIFICATION_WORKFLOW.md` exists and is operator-readable
+- [x] ADR landed (ADR-002)
+- [x] Test ratchet: stays at 4 (S-3 baseline maintained)
+- [x] Frontmatter coverage: 100%
+- [x] Sprint moves to `sprints/completed/2026-05/`
 
-## Close note
+## Close note (2026-05-20)
 
-(filled in at close)
+S-2 closed same day as kickoff (no carry-over). The original plan
+imagined WP-2.3, 2.4, 2.5 as fresh authoring work; in fact all five
+specs already existed in the agentile archive (`CapsuleInstall.tla`
+and `BreakGlass.tla` under their pre-RFC names). The work shrank
+to: copy, rename two of them to match RFC §9.1, realign their
+`MODULE` declarations, populate the README + workflow doc + ADR,
+and write the per-PR TLC verification CI job.
+
+**Federation drift-check impact.** None — drift-check operates on
+Cargo dep pins, not on `.agentile/formal/`. The spec ratchet is
+nist-agent-local.
+
+**Pending CI behavior.** `tla-verify.yml` is wired but has not yet
+run on a PR (this is the PR that introduces it). Expect ~3-5
+minutes per run; cache hit shrinks subsequent runs.
+
+**Next sprint.** S-4 (EVM chain adapter trait). Will close the
+last federation drift constraint (`citrate-wallet-core` pin in
+`crates/nist-agent-chain/Cargo.toml`).

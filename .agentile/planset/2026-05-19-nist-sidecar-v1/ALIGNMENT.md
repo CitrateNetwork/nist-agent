@@ -66,18 +66,32 @@ belongs upstream or here, the rule is:
 
 ## Open ownership questions
 
-The following are unresolved as of planset opening and need decision
-by the federation lead during S-1 kickoff:
+The following were open at planset opening; resolution status is
+tracked here as each sprint closes.
 
 - **`trait ChainClient` placement.** Is the trait an upstream
   concept (lives in `citrate-agent-core`) or a sidecar concept
   (lives in a nist-agent crate that *uses* `citrate-agent-core`)?
   Working assumption: upstream — the trait is core-shaped, the
   generic EVM impl is sidecar-shaped.
+  **RESOLVED 2026-05-20 (S-4 close, ADR-003)**: trait lives in
+  `nist-agent-chain` (sidecar concept). The working assumption
+  was wrong — the trait's call shape is operator-policy-driven,
+  the existing `AnchorRegistryClient` is Citrate-coupled, and
+  upstream placement would have created release-cadence
+  coupling. ADR-003 documents the full reasoning. Reversal
+  conditions named there.
 - **Doctor checks 6–11.** Land in runtime first (and consume), or
   land here first (and upstream)? Working assumption: land here in
-  S-7, upstream in S-7's exit week.
+  S-7, upstream in S-7's exit week. **OPEN — decision in S-7.**
 - **TLA+ spec custody.** The two specs that are "DONE in runtime"
   — do they live canonically in runtime or in nist-agent? Working
   assumption: in **nist-agent** (since this repo asserts the
   product compliance posture); runtime references our copies.
+  **RESOLVED 2026-05-20 (S-2 close, ADR-002)**: all five
+  normative specs hold canonical custody in
+  `nist-agent/.agentile/formal/specs/agent/`. Working assumption
+  confirmed. ADR-002 documents reasoning and reversal conditions.
+  The actual sprint also discovered that *all five* specs already
+  existed in the archive (not just two), so the original
+  "fresh authoring" framing for three of them was wrong.

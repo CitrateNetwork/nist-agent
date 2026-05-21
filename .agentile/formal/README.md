@@ -1,161 +1,82 @@
 ---
-created: 2026-04-30T05:00:00Z
-branch: main
-author: agentile-skeleton
+created: 2026-05-20T00:00:00Z
+branch: feat/s-2-tla-spec-port
+author: Saul Loveman + Claude Opus 4.7 (1M context)
 status: active
 ---
 
-# Formal Verification
+# .agentile/formal/ — Normative TLA+ specifications
 
-> What `.agentile/formal/` is, when to use it, and how it plugs
-> into the rest of the framework.
+> The five safety-critical TLA+ specs RFC-CIT-AGENT-0001 §9.1 names
+> as normative for v1.0. Each spec models one subsystem of the
+> harness; each is paired with a Gherkin `.feature` file under
+> `features/`. Spec verification is a Rule-10 BLOCKER on every PR.
 
-This directory holds the project's formal-verification scaffold:
-TLA+ specs (mirrored from the project's `specs/tla/` source-of-
-truth directory), an inventory index, and the workflow that
-governs how specs are added, updated, or removed.
+## Inventory
 
-Formal verification in Agentile is one of the four ratchets (see
-`coverage/GATES.md` ratchet 2). A project that touches consensus,
-finality, proposer election, or any other state-machine boundary
-either has TLA+ coverage or has explicit, documented justification
-for why not. There is no third option.
+| Spec | RFC § | Maps to feature | TLC states (archive, runtime budget) |
+|---|---|---|---|
+| [`ApprovalStateMachine`](specs/agent/ApprovalStateMachine.tla) | §5 | [`features/core/hitl-quorum.feature`](../../features/core/hitl-quorum.feature) + [`hitl-state-managed-interrupt.feature`](../../features/core/hitl-state-managed-interrupt.feature) | 336,292 |
+| [`AuditChainIntegrity`](specs/agent/AuditChainIntegrity.tla) | §6 | [`features/core/audit-chain-append.feature`](../../features/core/audit-chain-append.feature) + [`audit-anchor-strategies.feature`](../../features/core/audit-anchor-strategies.feature) | 35,435 |
+| [`DataClassLattice`](specs/agent/DataClassLattice.tla) | §7.2 | [`features/capsule/capsule-data-class-lattice.feature`](../../features/capsule/capsule-data-class-lattice.feature) + [`features/core/policy-bundle.feature`](../../features/core/policy-bundle.feature) | BOUNDED_EXPLORATION ≥3.4M states |
+| [`CapsuleInstallGate`](specs/agent/CapsuleInstallGate.tla) | §4.5, §7.2 | [`features/capsule/capsule-install-gate.feature`](../../features/capsule/capsule-install-gate.feature) | 2,600 |
+| [`BreakGlassPath`](specs/agent/BreakGlassPath.tla) | §5.5 | [`features/core/hitl-break-glass.feature`](../../features/core/hitl-break-glass.feature) | BOUNDED_EXPLORATION |
 
----
+The `CapsuleInstallGate` and `BreakGlassPath` specs were ported from
+`citrate-agentile-archive/formal/specs/agent/{CapsuleInstall,BreakGlass}.tla`
+and renamed to match the RFC §9.1 normative names. The behavior is
+unchanged; only the `MODULE` declaration was edited.
 
-## Directory layout
+## Custody
 
-```
-.agentile/formal/
-├── README.md                  # this file
-├── VERIFICATION_WORKFLOW.md   # the 6-step method
-├── SPEC_INDEX.md              # canonical inventory (filled by bootstrap)
-└── specs/                     # mirrored from <project>/specs/tla/
-    └── <area>/
-        ├── <SpecName>.tla
-        └── <SpecName>.cfg
-```
+Per [`ADR-002`](../adrs/ADR-002-tla-custody-in-nist-agent.md) and
+[`planset/.../ALIGNMENT.md`](../planset/2026-05-19-nist-sidecar-v1/ALIGNMENT.md),
+**nist-agent holds the canonical copy** of these five specs.
+`citrate-agent-runtime` references our copies. When a spec changes,
+the change lands here first.
 
-The `.tla` and `.cfg` files in `.agentile/formal/specs/` are
-**mirrors** of the project's source-of-truth specs (typically
-under `<project-root>/specs/tla/` for code-adjacent locality).
-The mirror exists so that:
+## How to verify locally
 
-- The skeleton's CI tooling can find specs without knowing each
-  project's source-of-truth path.
-- `SPEC_INDEX.md` gives a stable, queryable inventory.
-- A repo with multiple specs directories (mono-repo with several
-  workspaces) has a single agentile-side aggregation point.
-
-The mirror is a one-way sync: source-of-truth → `.agentile/formal/
-specs/`. Editing the mirror without editing the source is a
-correctness bug. Bootstrap and CI tooling enforces sync.
-
----
-
-## When to add a TLA+ spec
-
-Add a spec when the work touches:
-
-- Consensus (block production, block selection, fork choice)
-- Finality (checkpoints, BFT votes, slashing conditions)
-- Proposer election (VRF, leader selection, view changes)
-- Cross-actor invariants (handshake protocols, state-channel
-  exchanges, cross-chain bridges)
-- State-machine replication (any place a "happens-before"
-  relationship between actors matters for correctness)
-
-Skip a spec when the work is:
-
-- Pure functions (parsers, serializers, format conversions)
-- Statistical / numerical estimation (TLA+ is the wrong tool —
-  add a property test instead)
-- UI rendering / IPC plumbing (model the protocol it speaks to,
-  not the UI itself)
-- Performance optimization of an already-correct implementation
-
-When in doubt, ask: "Could a race condition between two actors
-violate this invariant?" If yes, write a spec. If no, write a
-property test.
-
----
-
-## Adding a spec — quick path
-
-Full procedure in `VERIFICATION_WORKFLOW.md`. Quick version:
-
-1. Copy `templates/TLA_SPEC_TEMPLATE.tla` and `.cfg` to your
-   project's `specs/tla/<area>/<SpecName>.{tla,cfg}`.
-2. Fill in the state machine, actions, and invariants.
-3. Run TLC. Fix the spec until clean.
-4. Mirror to `.agentile/formal/specs/<area>/`.
-5. Add an entry to `SPEC_INDEX.md`.
-6. Add a CI step that re-runs TLC on every PR.
-
-Step 6 is what makes the spec count in ratchet 2. A spec that is
-not run in CI does not count toward the ratchet — TLA+ proofs
-that don't get re-run rot the same way unrun tests do.
-
----
-
-## TLA+ Toolbox
-
-Specs are checked with TLC, the explicit-state model checker that
-ships with the TLA+ Toolbox. Two practical install paths:
-
-| Approach | When to use |
-|----------|-------------|
-| **TLA+ Toolbox (Eclipse-based GUI)** | Local exploration; rich counterexample browser |
-| **`tla2tools.jar` (CLI)** | CI integration; reproducible runs |
-
-The CLI path is what CI uses. A typical invocation:
+See [`VERIFICATION_WORKFLOW.md`](VERIFICATION_WORKFLOW.md). The
+short version:
 
 ```bash
-java -cp tla2tools.jar tlc2.TLC \
-  -config <SpecName>.cfg \
-  -workers <N> \
-  <SpecName>.tla
+# install tla2tools.jar (one-time)
+curl -L https://github.com/tlaplus/tlaplus/releases/latest/download/tla2tools.jar \
+  -o ~/.local/share/tla2tools.jar
+
+# verify a spec
+java -jar ~/.local/share/tla2tools.jar -workers auto \
+  -config .agentile/formal/specs/agent/ApprovalStateMachine.cfg \
+  .agentile/formal/specs/agent/ApprovalStateMachine.tla
 ```
 
-Projects often check `tla2tools.jar` into the repo (under
-`tools/` or similar) to pin the TLC version. See the project's
-`BASELINE.md` for the canonical TLC invocation.
+## Ratchet
 
-Reference: https://lamport.azurewebsites.net/tla/tla.html
+`scripts/ci/check_spec_ratchet.py` enforces Rule 10's file-count
+floor (currently 5; baseline in `.agentile/coverage/baseline.json`).
+`.github/workflows/tla-verify.yml` runs full TLC verification on
+every PR — that is the load-bearing BLOCKER per Rule 10.
 
----
+### BOUNDED_EXPLORATION
 
-## Removing a spec
+`BreakGlassPath` and `DataClassLattice` exceed the per-PR CI budget
+(10 min × 2 cores × 2.5GB heap on a GitHub Actions hosted runner).
+TLC's progressive search runs for the full budget without finding
+any invariant violation, then the wall-clock kills it. Per
+[`VERIFICATION_WORKFLOW.md`](VERIFICATION_WORKFLOW.md) option 4 and
+the archive's `TLC_BASELINE.md` pattern, this is recorded as
+"bounded exploration with zero violations" — tolerated by CI, not
+ignored. Three follow-up paths are tracked in the S-2 RETRO:
 
-A spec can be removed only if:
+1. Tighten the `.cfg` constants (lower `CONSTANTS` cardinalities)
+   so the bounded model fits within the CI budget.
+2. Provision a slow-track CI workflow (`tla-verify-slow.yml`)
+   running these specs nightly with a 60-minute budget per spec.
+3. Use a self-hosted runner with more CPU/RAM that completes the
+   full search.
 
-1. The state machine it modeled no longer exists in the codebase
-   (i.e. the feature was retired), AND
-2. The removal commit lands the deletion of both the source-of-
-   truth `.tla`/`.cfg` and the mirror, AND
-3. `SPEC_INDEX.md` is updated to remove the entry, AND
-4. The removal is documented in the sprint's RETRO.md (or a
-   journal entry) explaining what was retired.
-
-A spec cannot be removed because:
-
-- It's slow (run it less often in CI; don't remove it)
-- It's complex (refactor it; don't remove it)
-- It found a bug that is now fixed (the bug fix is exactly when
-  the spec earned its keep — keep it)
-- The team forgot how it works (document it; don't remove it)
-
-A removed-and-replaced spec is two coordinated commits: the
-replacement lands first and is verified passing, then the original
-is removed. Net spec count cannot drop.
-
----
-
-## See also
-
-- `VERIFICATION_WORKFLOW.md` — the 6-step method
-- `SPEC_INDEX.md` — the inventory (or `SPEC_INDEX.md.template`
-  before bootstrap fills it in)
-- `coverage/GATES.md` — ratchet 2 enforcement
-- `templates/TLA_SPEC_TEMPLATE.tla` — starting point for new specs
-- `CORE_RULES.md` Rule 10 — formal verification for consensus
+The `tla-verify.yml` workflow has a hard-coded allow-list of
+`BOUNDED_EXPLORATION_SPECS`. Adding a new entry to that list is a
+sprint-level decision — surface it in the PR description and the
+relevant sprint's RETRO.

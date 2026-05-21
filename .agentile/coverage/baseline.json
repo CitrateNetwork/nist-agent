@@ -7,11 +7,11 @@
     "command": "cargo test --workspace 2>&1 | grep 'test result:' | awk '{s+=$4}END{print s}'"
   },
   "specs": {
-    "count": 0,
+    "count": 5,
     "directories": [
       ".agentile/formal/specs"
     ],
-    "command": ""
+    "command": "find .agentile/formal/specs -name '*.tla' -not -path '*/states/*' -not -name '*_TTrace_*.tla' | wc -l"
   },
   "tripwires": {
     "count": 0,
