@@ -85,6 +85,10 @@ ignore = [
     { id = "RUSTSEC-2026-0089", reason = "wasmtime: Winch table.fill host panic; same bump" },
     { id = "RUSTSEC-2026-0091", reason = "wasmtime: OOB write transcoding component model strings; same bump" },
     { id = "RUSTSEC-2026-0092", reason = "wasmtime: panic transcoding misaligned UTF-16; same bump" },
+    { id = "RUSTSEC-2026-0093", reason = "wasmtime: heap OOB in component-model UTF-16→latin1+utf16 transcoding; same bump" },
+    { id = "RUSTSEC-2026-0094", reason = "wasmtime: Winch improperly-masked table.grow return value; same bump" },
+    { id = "RUSTSEC-2026-0095", reason = "wasmtime: Winch sandbox-escape via memory access; same bump" },
+    { id = "RUSTSEC-2026-0096", reason = "wasmtime: aarch64 Cranelift miscompiled guest heap access enables sandbox escape; same bump" },
     # ── ansi-escape logger advisory ───────────────────────────
     { id = "RUSTSEC-2025-0055", reason = "ANSI escape logging vulnerability via transitive log dep; remediation tracked in S-13 prep alongside structured-logging migration" },
     # ── unmaintained transitive crates ────────────────────────
