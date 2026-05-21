@@ -64,7 +64,9 @@ let bundle = hipaa(OverlayBuilder {
       (HIPAA Security Rule requires periodic review)
 - [ ] Business Associate Agreements (BAAs) executed with all
       vendors whose harness instance touches PHI
-- [ ] Audit log persistence reaches the 6-year retention floor
+- [ ] Audit log persistence reaches the 6-year retention floor;
+      records persist to the WORM sink and (per operator choice)
+      anchor to the AnchorRegistry for tamper-evidence
 
 ## Decommissioning
 
@@ -72,6 +74,23 @@ Same shape as FERPA. HIPAA decommissioning is rare for covered
 entities; more common for business associates whose contracts
 expire. The workflow file documents the BAA termination + the
 final audit export covers the contract's effective period.
+
+## Rollback
+
+- Revert the PolicyBundle to the previous signed version. The
+  rollback is itself an audit event (`PolicyChange` record with
+  AU-9(5) dual signature). For a covered entity, document the
+  BAA-status implications in the workflow file before signing —
+  HIPAA rollback affects the entity's compliance posture, not
+  just the harness configuration.
+- Un-install PHI-touching capsules through the standard
+  HITL-gated capsule-uninstall flow. The minimum-necessary
+  `data_class.reads` declarations are recorded in the install
+  audit; the uninstall audit closes the loop.
+- Export the audit log for the period during which the HIPAA
+  bundle applied; archive to the 6-year retention floor. The
+  export must include any `BreachNotificationOpened` /
+  `BreachNotificationClosed` events from the period.
 
 ## See also
 

@@ -88,6 +88,19 @@ workflow per RFC §2.3:
    archive per CMMC-L3 baseline.
 4. A `OverlayDecommissioned` AuditRecord is appended.
 
+## Rollback
+
+- Revert the PolicyBundle to the previous signed version. The
+  rollback is itself an audit event (`PolicyChange` record with
+  AU-9(5) dual signature); the operator's SecurityOfficer +
+  ComplianceOfficer co-sign.
+- Un-install added FERPA-overlay capsules (e.g. redact-and-attest)
+  through the standard HITL-gated capsule-uninstall flow.
+- Export the audit log for the period during which the FERPA
+  bundle applied; archive to the CMMC-L3 baseline 6-year WORM
+  retention. The PII-redact capsule's emit log is part of this
+  export per AU-2.
+
 ## See also
 
 - [`features/overlays/overlay-ferpa.feature`](../../../features/overlays/overlay-ferpa.feature)

@@ -17,6 +17,7 @@ members = [
     "crates/nist-agent-hitl",
     "crates/nist-agent-marketplace",
     "crates/nist-agent-mobile-pairing",
+    "crates/nist-agent-release",
 ]
 resolver = "2"
 
@@ -65,3 +66,4 @@ tokio-stream = "0.1"
 url = "2.5"
 ciborium = "0.2"  # canonical CBOR for PolicyBundle (RFC 8949 §4.2.1)
 ed25519-dalek = { version = "2.1", features = ["std"] }  # SecurityOfficer signature verification on bundles
+toml = "0.8"  # release.manifest.toml decode (S-12 dist-bundled-gemma4 / dist-signed-releases scenarios)
