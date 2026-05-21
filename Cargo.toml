@@ -6,6 +6,7 @@
 # ownership crosswalk.
 members = [
     "crates/nist-agent-prelude",
+    "crates/nist-agent-chain",
 ]
 resolver = "2"
 
@@ -27,6 +28,13 @@ rust-version = "1.78"
 # is the single edit point.
 citrate-agent-core = { version = "0.4", git = "ssh://git@github-citrate-agent-runtime/CitrateNetwork/citrate-agent-runtime", rev = "2591ed2d28780ca7938befe853be7cd1620029cc" }
 
+# Chain primitives from citrate-chain. Rev MUST match the federation
+# manifest's [repos.citrate-chain].rev (currently
+# 0f2d16b486a9ec1ed8a0394440dac480075d6942). Drift-check enforces
+# this via the [[drift]] entry landed in citrate-federation commit
+# 5759beb.
+citrate-wallet-core = { version = "0.4", git = "ssh://git@github-citrate-chain/CitrateNetwork/citrate-chain", rev = "0f2d16b486a9ec1ed8a0394440dac480075d6942" }
+
 # Standard deps mirrored from citrate-agent-runtime so version
 # resolution stays stable. Add to this block instead of crate-local
 # deps when the dep is shared.
@@ -36,3 +44,7 @@ tokio = { version = "1.40", features = ["full"] }
 tracing = "0.1"
 anyhow = "1.0"
 thiserror = "2.0"
+async-trait = "0.1"
+k256 = { version = "0.13", features = ["ecdsa"] }
+sha3 = "0.10"
+hex = "0.4"

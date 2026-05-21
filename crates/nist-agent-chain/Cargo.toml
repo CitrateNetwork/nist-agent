@@ -1,0 +1,23 @@
+[package]
+name = "nist-agent-chain"
+description = "Chain-agnostic adapter for nist-agent — trait ChainClient with default Citrate L1 implementation and a generic EVM implementation. Sidecar value-add over citrate-agent-runtime per RFC-CIT-AGENT-0001 §3.2 + §7."
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+citrate-agent-core = { workspace = true }
+citrate-wallet-core = { workspace = true }
+async-trait = { workspace = true }
+serde = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+k256 = { workspace = true }
+sha3 = { workspace = true }
+hex = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true }
