@@ -68,6 +68,13 @@ bundle.bundle_name = "ferpa-coppa".into();
 - [ ] Parental-consent-verifier capsule is installed (S-8b)
 - [ ] Audit log captures `ParentalConsentTokenValidated` events
 - [ ] Risk-tier map escalates capsules that read `COPPA-restricted`
+- [ ] `nist_agent_doctor` reports the parental-consent-verifier
+      capsule's `content_hash` + signing tier under the daily
+      report; the doctor's `COPPA-restricted` data-class lattice
+      check returns `Severity::Pass`.
+- [ ] Audit log records (including `ParentalConsentTokenValidated`
+      events) persist to the WORM sink and anchor to the
+      configured AnchorRegistry per the CMMC-L3 baseline strategy.
 
 ## Decommissioning
 
@@ -76,6 +83,21 @@ export + `OverlayDecommissioned` record. The act of decommissioning
 COPPA in a K-12 deployment is itself a sensitive event; the
 operator's compliance officer SHOULD document a justification in
 the workflow file beyond the formal signature.
+
+## Rollback
+
+- Revert the PolicyBundle to the previous signed version. The
+  rollback is itself an audit event (`PolicyChange` record with
+  AU-9(5) dual signature). For a K-12 deployment, the operator's
+  ComplianceOfficer should document the legal justification in
+  the rollback workflow file beyond the formal signature — COPPA
+  decommissioning is consequential.
+- Un-install COPPA-specific capsules (parental-consent-verifier,
+  COPPA-emit-gating) through the standard HITL-gated
+  capsule-uninstall flow.
+- Export the audit log for the period during which the COPPA
+  bundle applied; archive to CMMC-L3 baseline retention.
+  `ParentalConsentTokenValidated` events are part of this export.
 
 ## See also
 

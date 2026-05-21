@@ -65,7 +65,9 @@ bundle.bundle_name = "school-full".into();
 - [ ] `nist_agent_doctor` reports the filter capsule's
       `content_hash` + signing tier under the daily report
 - [ ] Audit log persistence reaches the configured CIPA-eligible
-      retention period (5 years; effective 6 with CMMC)
+      retention period (5 years; effective 6 with CMMC) — records
+      land in the WORM sink and (per operator preference) anchor
+      to the configured AnchorRegistry
 - [ ] Internet safety policy document referenced in the
       `.agentile/policy/<overlay>/POLICY.md` (operator-authored)
 
@@ -75,6 +77,21 @@ Same pattern as FERPA / COPPA. CIPA decommissioning is rare in
 practice because E-Rate funding requires the school maintain
 the technology-protection-measure clause; decommissioning would
 expose the district to ineligibility re-review.
+
+## Rollback
+
+- Revert the PolicyBundle to the previous signed version. The
+  rollback is itself an audit event (`PolicyChange` record with
+  AU-9(5) dual signature). For an E-Rate-funded district, also
+  document the technology-protection-measure status change in
+  the workflow file — CIPA rollback exposes the district to
+  E-Rate re-review.
+- Un-install the CIPA filter capsule through the standard
+  HITL-gated capsule-uninstall flow. The harness's network
+  posture remains `Disabled` by default after capsule removal.
+- Export the audit log for the period during which the CIPA
+  bundle applied; archive to the 5-year CIPA-eligible retention
+  (effective 6-year under the CMMC-L3 baseline).
 
 ## See also
 

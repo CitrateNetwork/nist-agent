@@ -5142,6 +5142,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "nist-agent-release"
+version = "0.1.0"
+dependencies = [
+ "ed25519-dalek",
+ "hex",
+ "nist-agent-prelude",
+ "serde",
+ "serde_json",
+ "sha2",
+ "thiserror 2.0.18",
+ "toml 0.8.23",
+ "tracing",
+]
+
+[[package]]
 name = "nist-agent-wizard"
 version = "0.1.0"
 dependencies = [

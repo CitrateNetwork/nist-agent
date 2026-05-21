@@ -93,6 +93,25 @@ the FedRAMP-High period. The WORM sink stays intact (immutable
 records); the decommissioning event is a new record in the
 chain.
 
+## Rollback
+
+- Revert the PolicyBundle to the previous signed version. The
+  rollback is itself an audit event (`PolicyChange` record with
+  AU-9(5) dual signature). For an ATO-bearing system, the
+  rollback must be a documented step in the ATO transition plan;
+  rolling back without coordinating the Authorization-to-Operate
+  state is an ATO violation.
+- Un-install FedRAMP-High-overlay capsules through the standard
+  HITL-gated capsule-uninstall flow. The WORM audit sink stays
+  intact (immutable records); the capsule uninstall is itself an
+  additional WORM record.
+- Export the audit log for the period during which the
+  FedRAMP-High bundle applied; archive per the FedRAMP
+  continuous-monitoring evidence packet shape. The signed daily
+  doctor reports for the period are part of this export.
+- Mobile signing remained `Disabled` for the entire FedRAMP-High
+  window; no mobile-related cleanup is required.
+
 ## See also
 
 - [`features/overlays/overlay-fedramp-high.feature`](../../../features/overlays/overlay-fedramp-high.feature)
