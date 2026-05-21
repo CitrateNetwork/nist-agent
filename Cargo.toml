@@ -16,6 +16,7 @@ members = [
     "crates/nist-agent-wizard",
     "crates/nist-agent-hitl",
     "crates/nist-agent-marketplace",
+    "crates/nist-agent-mobile-pairing",
 ]
 resolver = "2"
 

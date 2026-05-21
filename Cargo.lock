@@ -5073,6 +5073,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "nist-agent-mobile-pairing"
+version = "0.1.0"
+dependencies = [
+ "citrate-agent-core",
+ "hex",
+ "nist-agent-prelude",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.18",
+ "tracing",
+]
+
+[[package]]
 name = "nist-agent-model"
 version = "0.1.0"
 dependencies = [
