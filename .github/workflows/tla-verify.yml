@@ -107,7 +107,9 @@ jobs:
 
           echo
           echo "TLC verification summary:"
-          echo "  PASS: $(( $(ls .agentile/formal/specs/**/*.tla 2>/dev/null | wc -l) - ${#failed[@]} - ${#bounded[@]} ))"
+          # shellcheck disable=SC2012 # find shellcheck-preferred; ls -- safer for our depth
+          total=$(find .agentile/formal/specs -name '*.tla' 2>/dev/null | wc -l)
+          echo "  PASS: $(( total - ${#failed[@]} - ${#bounded[@]} ))"
           echo "  BOUNDED_EXPLORATION: ${#bounded[@]} ${bounded[*]:+(${bounded[*]})}"
           echo "  FAILED: ${#failed[@]} ${failed[*]:+(${failed[*]})}"
 
