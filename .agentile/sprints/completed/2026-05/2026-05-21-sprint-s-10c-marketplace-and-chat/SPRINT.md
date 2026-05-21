@@ -1,8 +1,8 @@
 ---
 created: 2026-05-21T00:00:00Z
-branch: main
+branch: feat/s-10c-marketplace-and-chat
 author: Saul Loveman + Claude Opus 4.7 (1M context)
-status: backlog
+status: complete
 sprint: S-10c
 ---
 
@@ -53,3 +53,48 @@ streams tokens).
 - Per-capsule SHA-256 verification UI (the inspector already
   surfaces content_hash; explicit "verify" button is nice-to-have)
 - Multi-tab chat sessions (one conversation at a time in v1.0)
+
+## Close note — 2026-05-21
+
+Status: **COMPLETE**.
+
+**Delivered.**
+- `crates/nist-agent-marketplace` (11th workspace crate).
+- `browser.rs`: `MarketplaceView` with three tabs (Bundled / Site
+  Mirror / On-Chain), per-overlay pre-filter at construction, AND-
+  semantics `required_overlays` filter, case-insensitive search,
+  `validate_install()` belt-and-braces gate, `switch_tab()` that
+  refuses on-chain when the egress posture forbids it.
+- `chat.rs`: `ChatSessionView` with three-state lifecycle (Idle /
+  Streaming / PausedAtAction), input-enabled gating, resume-id
+  validation, FedRAMP-High-aware trajectory-export gate per RFC
+  §12 Q3.
+- `ui/marketplace.slint`: `MarketplacePane` (TabWidget +
+  per-listing Install button) and `ChatPane` (turns list +
+  streaming/paused inline state + submit/cancel/resume/export
+  buttons), `feat-ui`-gated.
+- `src/ui.rs`: `to_visual()` conversions for `CapsuleListing`,
+  `ChatTurn`, and `ChatStreamState`.
+
+**Metrics.**
+- `cargo test --workspace` 121 → 139 (+18).
+- Workspace crates 10 → 11.
+- ADRs unchanged (the no-upstream-migration decision was already
+  recorded in ADR-009 covering the entire UI surface).
+- Slint compiles clean under `--features feat-ui` (two
+  Window-inheritance warnings carry over from S-10b; pane-style
+  intentional — harness wraps panes in a Window).
+
+**Exit criteria — final state.**
+- ✅ Three-tab marketplace with per-source listings.
+- ✅ Search + overlay-certification filter.
+- ✅ Install routes to Capsule Inspector via `validate_install()` +
+  the S-10b `CapsuleInspectorView`.
+- ✅ Chat surface lifecycle covers Idle / Streaming / Paused-at-
+  action / Resume.
+- ✅ Trajectory-export hint conditioned on overlay set.
+
+Wizard callback wiring + tokio integration of the chat surface
+into a running `Agent::step()` stream are deferred to S-12
+(distribution + runbooks) — the render model is the load-bearing
+testable layer; the streaming glue is a thin tokio adapter.

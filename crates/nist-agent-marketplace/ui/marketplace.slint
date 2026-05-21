@@ -1,0 +1,193 @@
+// nist-agent capsule marketplace + chat surfaces per RFC §8.3.
+//
+// Two panes:
+//   MarketplacePane — three-tab capsule browser with overlay filter
+//   ChatPane        — streaming chat that drives Agent::step()
+//
+// Compiled at build time when feat-ui is enabled (see build.rs).
+// Rust binding in src/ui.rs translates between these and the
+// render models in src/{browser,chat}.rs.
+
+import { Button, LineEdit, ListView, VerticalBox, HorizontalBox, GroupBox, ScrollView, TabWidget } from "std-widgets.slint";
+
+export struct CapsuleListingVisual {
+    id: string,
+    name: string,
+    version: string,
+    summary: string,
+    publisher: string,
+    signing-tier-label: string,
+    certified-overlays-summary: string,
+    risk-tier: string,
+}
+
+export struct ChatTurnVisual {
+    role-label: string,
+    content: string,
+    timestamp: string,
+}
+
+export struct ChatStreamStateVisual {
+    is-streaming: bool,
+    is-paused: bool,
+    partial-or-action: string,
+    checkpoint-id: string,
+}
+
+export component MarketplacePane inherits Rectangle {
+    in property <[CapsuleListingVisual]> bundled;
+    in property <[CapsuleListingVisual]> site-mirror;
+    in property <[CapsuleListingVisual]> on-chain;
+    in property <bool> on-chain-enabled;
+    in property <string> on-chain-disabled-reason;
+    in-out property <string> search-text;
+    callback search-changed(string);
+    callback tab-switched(string);
+    callback install-clicked(string); // listing id
+
+    VerticalBox {
+        Text {
+            text: "Capsule marketplace";
+            font-size: 18px;
+            font-weight: 600;
+        }
+        LineEdit {
+            placeholder-text: "search by name or summary";
+            text <=> root.search-text;
+            edited(t) => { root.search-changed(t); }
+        }
+        TabWidget {
+            Tab {
+                title: "Bundled (" + bundled.length + ")";
+                init => { root.tab-switched("bundled"); }
+                ListView {
+                    for l in root.bundled: Rectangle {
+                        VerticalBox {
+                            Text { text: l.name + " " + l.version; font-weight: 600; }
+                            Text { text: l.summary; wrap: word-wrap; }
+                            Text { text: "publisher: " + l.publisher; color: #666; }
+                            Text { text: "overlays: " + l.certified-overlays-summary; color: #666; }
+                            Text { text: "risk: " + l.risk-tier + " · signing: " + l.signing-tier-label; color: #666; }
+                            Button {
+                                text: "Install…";
+                                clicked => { root.install-clicked(l.id); }
+                            }
+                        }
+                    }
+                }
+            }
+            Tab {
+                title: "Site Mirror (" + site-mirror.length + ")";
+                init => { root.tab-switched("site-mirror"); }
+                ListView {
+                    for l in root.site-mirror: Rectangle {
+                        VerticalBox {
+                            Text { text: l.name + " " + l.version; font-weight: 600; }
+                            Text { text: l.summary; wrap: word-wrap; }
+                            Text { text: "publisher: " + l.publisher; color: #666; }
+                            Text { text: "overlays: " + l.certified-overlays-summary; color: #666; }
+                            Button {
+                                text: "Install…";
+                                clicked => { root.install-clicked(l.id); }
+                            }
+                        }
+                    }
+                }
+            }
+            Tab {
+                title: on-chain-enabled ? "On-Chain (" + on-chain.length + ")" : "On-Chain (disabled)";
+                init => { if (on-chain-enabled) { root.tab-switched("on-chain"); } }
+                if !on-chain-enabled : Text {
+                    text: "On-chain tab disabled: " + on-chain-disabled-reason;
+                    color: #c60;
+                    wrap: word-wrap;
+                }
+                if on-chain-enabled : ListView {
+                    for l in root.on-chain: Rectangle {
+                        VerticalBox {
+                            Text { text: l.name + " " + l.version; font-weight: 600; }
+                            Text { text: l.summary; wrap: word-wrap; }
+                            Text { text: "publisher: " + l.publisher; color: #666; }
+                            Text { text: "overlays: " + l.certified-overlays-summary; color: #666; }
+                            Button {
+                                text: "Install…";
+                                clicked => { root.install-clicked(l.id); }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+export component ChatPane inherits Rectangle {
+    in property <[ChatTurnVisual]> turns;
+    in property <ChatStreamStateVisual> stream;
+    in property <bool> input-enabled;
+    in property <bool> trajectory-export-allowed;
+    in-out property <string> draft;
+
+    callback submit-clicked(string);
+    callback resume-clicked(string);  // checkpoint id
+    callback cancel-clicked();
+    callback export-clicked();
+
+    VerticalBox {
+        Text {
+            text: "Chat";
+            font-size: 18px;
+            font-weight: 600;
+        }
+        ScrollView {
+            VerticalBox {
+                for t in root.turns: Rectangle {
+                    background: t.role-label == "agent" ? #f4f4ff : t.role-label == "system" ? #fff8e0 : transparent;
+                    VerticalBox {
+                        Text { text: t.role-label + " · " + t.timestamp; color: #666; font-size: 12px; }
+                        Text { text: t.content; wrap: word-wrap; }
+                    }
+                }
+                if stream.is-streaming : Rectangle {
+                    background: #f4f4ff;
+                    VerticalBox {
+                        Text { text: "agent · streaming…"; color: #666; font-size: 12px; }
+                        Text { text: stream.partial-or-action; wrap: word-wrap; }
+                    }
+                }
+                if stream.is-paused : Rectangle {
+                    background: #fff0e0;
+                    VerticalBox {
+                        Text { text: "Action proposal — awaiting HITL decision"; font-weight: 600; color: #c60; }
+                        Text { text: stream.partial-or-action; wrap: word-wrap; }
+                        Text { text: "checkpoint: " + stream.checkpoint-id; color: #666; font-size: 12px; }
+                    }
+                }
+            }
+        }
+        HorizontalBox {
+            LineEdit {
+                placeholder-text: input-enabled ? "type a prompt…" : "waiting for streaming / HITL…";
+                enabled: input-enabled;
+                text <=> root.draft;
+            }
+            Button {
+                text: "Send";
+                enabled: input-enabled && draft != "";
+                clicked => { root.submit-clicked(root.draft); }
+            }
+            if stream.is-streaming : Button {
+                text: "Cancel";
+                clicked => { root.cancel-clicked(); }
+            }
+            if stream.is-paused : Button {
+                text: "Resume";
+                clicked => { root.resume-clicked(stream.checkpoint-id); }
+            }
+            if trajectory-export-allowed : Button {
+                text: "Export trajectory";
+                clicked => { root.export-clicked(); }
+            }
+        }
+    }
+}

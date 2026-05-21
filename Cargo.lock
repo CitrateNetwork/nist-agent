@@ -5057,6 +5057,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "nist-agent-marketplace"
+version = "0.1.0"
+dependencies = [
+ "citrate-agent-core",
+ "hex",
+ "nist-agent-hitl",
+ "nist-agent-prelude",
+ "serde",
+ "serde_json",
+ "slint",
+ "slint-build",
+ "thiserror 2.0.18",
+ "tracing",
+]
+
+[[package]]
 name = "nist-agent-model"
 version = "0.1.0"
 dependencies = [
