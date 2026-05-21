@@ -1,0 +1,20 @@
+[package]
+name = "nist-agent-overlays"
+description = "PolicyBundle factory functions per RFC §2.3 overlay (CMMC-L3 baseline + FERPA + COPPA + CIPA in v1; HIPAA + FedRAMP-High in v2 = S-9). Plus the retention-floor table per RFC §6.4."
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+nist-agent-policy = { path = "../nist-agent-policy" }
+nist-agent-prelude = { path = "../nist-agent-prelude" }
+serde = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+
+[dev-dependencies]
+ed25519-dalek = { workspace = true }
+nist-agent-doctor = { path = "../nist-agent-doctor" }
