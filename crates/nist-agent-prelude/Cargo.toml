@@ -1,0 +1,17 @@
+[package]
+name = "nist-agent-prelude"
+description = "nist-agent prelude — re-exports the citrate-agent-core public surface frozen at RFC-CIT-AGENT-0001 §3.2, plus a thin overlay-aware wrapper. Consumed by all other nist-agent crates."
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+citrate-agent-core = { workspace = true }
+serde = { workspace = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }
+

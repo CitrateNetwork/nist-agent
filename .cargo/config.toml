@@ -1,0 +1,6 @@
+# Use system git for fetches so SSH config host aliases work.
+# Cargo's bundled libgit2 doesn't read ~/.ssh/config; system git does.
+# This repo consumes citrate-agent-core from the
+# github-citrate-agent-runtime alias (CitrateNetwork/citrate-agent-runtime).
+[net]
+git-fetch-with-cli = true

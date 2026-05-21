@@ -1,0 +1,38 @@
+[workspace]
+# nist-agent — composable, NIST-compliant agent harness. Sidecar
+# distribution of citrate-agent-core per RFC-CIT-AGENT-0001. Sidecar
+# consumer (not fork) of citrate-agent-runtime; see
+# .agentile/planset/2026-05-19-nist-sidecar-v1/ALIGNMENT.md for the
+# ownership crosswalk.
+members = [
+    "crates/nist-agent-prelude",
+]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+authors = ["Citrate Network Inc.", "Mozi Satori LLP (custodian)"]
+license = "Apache-2.0"
+repository = "https://github.com/CitrateNetwork/nist-agent"
+rust-version = "1.78"
+
+[workspace.dependencies]
+# Upstream agent engine. The rev MUST equal manifest's
+# [repos.citrate-agent-runtime].rev in citrate-federation.
+# Drift-check enforces this via the [[drift]] entry landed at
+# citrate-federation commit 5759beb.
+#
+# When the federation bumps this rev (via pin-bump.sh), this line
+# is the single edit point.
+citrate-agent-core = { git = "ssh://git@github-citrate-agent-runtime/CitrateNetwork/citrate-agent-runtime", rev = "2591ed2d28780ca7938befe853be7cd1620029cc" }
+
+# Standard deps mirrored from citrate-agent-runtime so version
+# resolution stays stable. Add to this block instead of crate-local
+# deps when the dep is shared.
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tokio = { version = "1.40", features = ["full"] }
+tracing = "0.1"
+anyhow = "1.0"
+thiserror = "2.0"

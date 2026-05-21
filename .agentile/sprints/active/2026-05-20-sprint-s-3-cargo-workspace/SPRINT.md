@@ -18,7 +18,7 @@ sprint: S-3
 | **Branch** | `main` |
 | **Start Date** | 2026-05-20 |
 | **End Date (target)** | 2026-05-27 |
-| **Status** | `KICKED OFF` |
+| **Status** | `IN PROGRESS` |
 | **Planset** | [`../../planset/2026-05-19-nist-sidecar-v1/OVERVIEW.md`](../../planset/2026-05-19-nist-sidecar-v1/OVERVIEW.md) |
 | **Predecessors** | S-1 (closed). S-2 runs in parallel (no mutual blocker). |
 
@@ -143,18 +143,33 @@ manifest pin is bumped (link to `pin-bump.sh`).
 - 2026-05-20 — Kickoff. Manifest entry for nist-agent landed in
   Citrate-Labs federation. Path-dep to local runtime is the first
   step; git-pin flip happens at sprint close.
+- 2026-05-20 (later) — WPs 3.1, 3.2, 3.3, 3.5, 3.6, 3.8 landed in a
+  single session. WP-3.4 (nist-agent-chain stub) deferred into S-4
+  scope to avoid carrying a no-op crate. WP-3.7 (CI workflow) is
+  the remaining open item — defers cleanly since `cargo test`,
+  `cargo fmt --check`, `cargo clippy` all pass locally and the
+  three `scripts/ci/check_*.py` already run via the agentile CI
+  workflow the skeleton shipped.
+  - Build: `cargo build --workspace` green in 37.77s (cold pull).
+  - Tests: 4/4 pass.
+  - fmt: clean.
+  - clippy: clean under `-D warnings`.
+  - Federation drift-check: 10/11 green (the
+    `nist-agent → citrate-agent-runtime` constraint goes green with
+    this commit; the `→ citrate-chain` constraint stays pending
+    for S-4 as planned).
 
 ## Exit criteria
 
-- [ ] Workspace builds (`cargo build --workspace`)
-- [ ] Tests pass (`cargo test --workspace`); count ≥ 1; baseline.json populated
-- [ ] `cargo deny check` green
-- [ ] `cargo fmt --check` green
-- [ ] `cargo clippy -D warnings` green
-- [ ] Manifest pin flipped from path-dep to git-rev
-- [ ] CI workflow updated and green on a PR
-- [ ] ADR landed
-- [ ] Frontmatter coverage stays at 100%
+- [x] Workspace builds (`cargo build --workspace`)
+- [x] Tests pass (`cargo test --workspace`); count = 4; baseline.json populated
+- [ ] `cargo deny check` green (deferred to CI — not installed locally)
+- [x] `cargo fmt --check` green
+- [x] `cargo clippy -D warnings` green
+- [x] Manifest pin landed as git-rev (no path-dep stage was needed)
+- [ ] CI workflow updated and green on a PR (WP-3.7 — only open item)
+- [x] ADR landed (ADR-001)
+- [x] Frontmatter coverage stays at 100%
 - [ ] Sprint moves to `sprints/completed/2026-05/` (or `2026-06/` if it slips)
 
 ## Close note
