@@ -1,0 +1,43 @@
+nist-agent v1.0-rc TOB engagement-comms PGP key
+================================================
+
+Algorithm:  Ed25519 (sign/cert/auth) + Curve25519 (encrypt)
+UID:        Citrate nist-agent TOB engagement (v1.0-rc, S-13)
+              (engagement-comms key; not for PolicyBundle signing)
+              <security@citratenetwork.org>
+Created:    2026-05-21
+Expires:    2028-05-20
+
+Fingerprint (verify out of band before trusting):
+
+  CCAB 2E1A 46A8 8B8A 7B3C  D377 FCFC DDF8 4584 16A1
+
+Long key id:
+  FCFCDDF8458416A1
+
+Short key id:
+  458416A1
+
+Public key (ASCII-armored): PGP_PUBKEY.asc (same directory)
+
+How to verify (TOB-side):
+
+  curl -sLO https://raw.githubusercontent.com/CitrateNetwork/nist-agent/main/docs/audit/PGP_PUBKEY.asc
+  gpg --show-keys PGP_PUBKEY.asc
+  # Confirm the fingerprint above matches.
+  gpg --import PGP_PUBKEY.asc
+
+Notes:
+
+- This key is for engagement-comms only. It is **not** the
+  SecurityOfficer key used to sign nist-agent `PolicyBundle`
+  artifacts; never conflate the two.
+- The private key currently lives in the engagement lead's
+  GnuPG homedir as a soft key. Migration to a hardware key
+  (YubiKey / OnlyKey) is operator's choice before the
+  engagement starts; if migration happens, the fingerprint
+  stays the same.
+- A revocation certificate was generated at key creation and
+  is stored at
+  `~/.gnupg/openpgp-revocs.d/CCAB2E1A46A88B8A7B3CD377FCFCDDF8458416A1.rev`.
+  Back this up off-machine.
