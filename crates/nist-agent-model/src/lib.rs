@@ -23,10 +23,13 @@
 //! has not yet sequenced CIT-AGENT-3's model-resolver work, we land
 //! locally and PR back; see ADR-004 for the migration plan.
 
+pub mod embedded;
 pub mod error;
 pub mod hash;
 pub mod ollama;
 pub mod resolver;
+
+pub use embedded::EmbeddedLlamaCpp;
 
 pub use error::ModelError;
 pub use hash::verify_sha256;

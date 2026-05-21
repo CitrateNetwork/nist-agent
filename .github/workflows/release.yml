@@ -1,0 +1,166 @@
+# Release pipeline — fires on `v\d+\.\d+\.\d+` tag push.
+#
+# Phases:
+#   1. Build the hermetic builder image (Dockerfile.builder).
+#   2. Build the workspace + `citrate-agent` bin inside the image.
+#   3. Run `cargo test --workspace` + clippy + fmt as a release gate.
+#   4. Produce per-artifact sha256s + SBOM (CycloneDX).
+#   5. Sign the release manifest with a soft Ed25519 key from
+#      the `RELEASE_SIGNING_KEY_HEX` repo secret. The HSM swap-
+#      in path is documented at docs/audit/HSM_SEAM.md; this
+#      workflow's signer step is the *seam*.
+#   6. Upload the signed bundle + manifest + SBOM to the GitHub
+#      release.
+#
+# Soft-key signing in this workflow produces a bundle marked
+# "pre-release / not for production" until the HSM swap-in
+# lands. The release.manifest.toml carries the same Ed25519
+# wire form either way; only the producer side changes.
+
+name: release
+
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to build (e.g. v1.0.0-rc.1)"
+        required: true
+
+jobs:
+  build:
+    name: build, test, sign
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # upload release assets
+      id-token: write   # reserved for future sigstore / OIDC
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # full history for git rev recording
+
+      - name: resolve tag
+        id: tag
+        run: |
+          if [ -n "${{ github.event.inputs.tag }}" ]; then
+            TAG="${{ github.event.inputs.tag }}"
+          else
+            TAG="${GITHUB_REF##*/}"
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "git_rev=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "release tag: $TAG"
+          echo "git rev:    $(git rev-parse HEAD)"
+
+      - name: build builder image
+        run: docker build -f Dockerfile.builder -t nist-agent-builder:${{ steps.tag.outputs.tag }} .
+
+      - name: workspace test + lint
+        run: |
+          docker run --rm -v "$PWD":/work -w /work \
+            nist-agent-builder:${{ steps.tag.outputs.tag }} \
+            bash -lc '
+              cargo fmt --all -- --check &&
+              cargo clippy --workspace --all-targets -- -D warnings &&
+              cargo test --workspace --release
+            '
+
+      - name: build citrate-agent binary
+        run: |
+          # Default features only — embedded inference + UI are
+          # operator opt-ins, not the default release shape.
+          docker run --rm -v "$PWD":/work -w /work \
+            nist-agent-builder:${{ steps.tag.outputs.tag }} \
+            cargo build --release --bin citrate-agent
+
+      - name: stage release bundle
+        run: |
+          mkdir -p release-staging/bin release-staging/sbom release-staging/runbooks
+          cp target/release/citrate-agent release-staging/bin/
+          chmod +x release-staging/bin/citrate-agent
+          for f in docs/compliance/*/RUNBOOK.md; do
+            o="release-staging/runbooks/$(basename $(dirname $f)).RUNBOOK.md"
+            cp "$f" "$o"
+          done
+
+      - name: cargo-audit baseline
+        continue-on-error: true   # advisories don't block tagged releases; report only
+        run: |
+          docker run --rm -v "$PWD":/work -w /work \
+            nist-agent-builder:${{ steps.tag.outputs.tag }} \
+            cargo audit > release-staging/sbom/cargo-audit.txt
+
+      - name: SBOM (CycloneDX)
+        run: |
+          docker run --rm -v "$PWD":/work -w /work \
+            nist-agent-builder:${{ steps.tag.outputs.tag }} \
+            bash -lc '
+              cargo install --locked cargo-cyclonedx --version 0.5.7 &&
+              cargo cyclonedx --format json --output-pattern bom --override-filename sbom
+            '
+          mv sbom.cdx.json release-staging/sbom/ 2>/dev/null || true
+          find . -name "*.cdx.json" -not -path "./release-staging/*" \
+            -exec mv {} release-staging/sbom/ \; || true
+          ls release-staging/sbom/
+
+      - name: hash artifacts + build release.manifest.toml
+        id: manifest
+        run: |
+          python3 scripts/release/build_manifest.py \
+            --version "${{ steps.tag.outputs.tag }}" \
+            --git-rev "${{ steps.tag.outputs.git_rev }}" \
+            --staging release-staging \
+            --out release-staging/release.manifest.toml
+          cat release-staging/release.manifest.toml | head -40
+
+      - name: sign release manifest
+        env:
+          RELEASE_SIGNING_KEY_HEX: ${{ secrets.RELEASE_SIGNING_KEY_HEX }}
+        run: |
+          if [ -z "$RELEASE_SIGNING_KEY_HEX" ]; then
+            echo "::warning ::RELEASE_SIGNING_KEY_HEX secret not set; producing UNSIGNED bundle"
+            echo "see docs/audit/HSM_SEAM.md for the production signing path"
+          fi
+          docker run --rm \
+            -v "$PWD":/work -w /work \
+            -e RELEASE_SIGNING_KEY_HEX \
+            nist-agent-builder:${{ steps.tag.outputs.tag }} \
+            cargo run --release --quiet \
+              --manifest-path scripts/release/Cargo.toml \
+              --bin sign-manifest -- \
+              --in release-staging/release.manifest.toml \
+              --out release-staging/release.manifest.toml
+
+      - name: package tarball
+        run: |
+          tar -C release-staging -czf \
+            "nist-agent-${{ steps.tag.outputs.tag }}.tar.gz" .
+          sha256sum "nist-agent-${{ steps.tag.outputs.tag }}.tar.gz" \
+            > "nist-agent-${{ steps.tag.outputs.tag }}.tar.gz.sha256"
+
+      - name: upload release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: nist-agent ${{ steps.tag.outputs.tag }}
+          draft: true
+          prerelease: true   # remove on first stable v1.0.0 tag
+          body: |
+            Auto-built by .github/workflows/release.yml.
+
+            Artifacts:
+            - `nist-agent-${{ steps.tag.outputs.tag }}.tar.gz` — bundle (bin + runbooks + SBOM + manifest)
+            - `nist-agent-${{ steps.tag.outputs.tag }}.tar.gz.sha256` — outer hash
+            - `release.manifest.toml` (inside the bundle) — per-artifact sha256 + detached signature
+
+            Signing posture: **${{ secrets.RELEASE_SIGNING_KEY_HEX != '' && 'soft-key (pre-production)' || 'UNSIGNED (set RELEASE_SIGNING_KEY_HEX secret)' }}**.
+            See `docs/audit/HSM_SEAM.md` for the production HSM signing path.
+
+            Air-gap install procedure: `docs/audit/AIRGAP_TEST.md`.
+          files: |
+            nist-agent-${{ steps.tag.outputs.tag }}.tar.gz
+            nist-agent-${{ steps.tag.outputs.tag }}.tar.gz.sha256

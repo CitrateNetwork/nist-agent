@@ -32,4 +32,17 @@ pub enum ModelError {
     /// or connect attempt.
     #[error("egress forbidden by policy for {0}")]
     EgressForbidden(&'static str),
+
+    /// Backend configuration is malformed (e.g. embedded GGUF path
+    /// doesn't exist, llama.cpp init failed) — distinct from
+    /// `NoModelAvailable` because this is the operator's mistake,
+    /// not a discovery miss.
+    #[error("invalid config: {reason}")]
+    InvalidConfig { reason: String },
+
+    /// Inference failed mid-execution (tokenize / batch / decode /
+    /// sampler). Surfaces the underlying backend's reason verbatim
+    /// so an operator can grep for it.
+    #[error("inference: {reason}")]
+    Inference { reason: String },
 }
