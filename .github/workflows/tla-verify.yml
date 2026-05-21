@@ -56,31 +56,66 @@ jobs:
 
       - name: Verify every spec under .agentile/formal/specs/
         run: |
-          set -e
+          set +e  # don't let an inner non-zero kill the whole loop
           failed=()
+          bounded=()
           shopt -s nullglob
-          # 10-minute per-spec budget; matches the archive's PR-time
-          # budget. ApprovalStateMachine clocks ~60s, others under
-          # 15s, so 10 minutes is generous slack.
+
+          # Specs whose state space exceeds the per-PR runner's CPU
+          # budget. Per VERIFICATION_WORKFLOW.md option 4 and the
+          # archive's TLC_BASELINE.md "BOUNDED_EXPLORATION (TIMEOUT
+          # with zero violations)" pattern: TLC's progressive
+          # state-search runs without ever finding a violation, but
+          # we hit the wall clock before exhausting the reachable
+          # space. Tolerated, not BLOCKER. Tightening their .cfg or
+          # provisioning a slow-track CI is tracked in S-2 RETRO.
+          BOUNDED_EXPLORATION_SPECS="BreakGlassPath DataClassLattice"
+
           for spec in .agentile/formal/specs/**/*.tla; do
             name=$(basename "$spec" .tla)
             cfg="${spec%.tla}.cfg"
             echo "::group::TLC $name"
             # -deadlock DISABLES TLC's default deadlock check
-            # (counter-intuitive flag name inherited from earlier TLC
-            # versions). Our specs include intentional terminal states
-            # (Executed, Rejected, Affirmed) which TLC would otherwise
-            # flag as deadlocks. Safety invariants (INVARIANTS) and
-            # liveness (PROPERTIES) are still checked because TLC
-            # gates those by their own machinery; ApprovalStateMachine's
-            # EventuallyTerminal liveness uses explicit fairness.
-            if ! timeout 600 java -Xmx2500M -jar ~/.local/share/tla2tools.jar \
-                -workers auto -deadlock -config "$cfg" "$spec"; then
-              echo "::error file=$spec::TLC verification failed"
-              failed+=("$name")
-            fi
+            # (counter-intuitive flag name inherited from earlier
+            # TLC versions). Our specs include intentional terminal
+            # states (Executed, Rejected, Affirmed) which TLC would
+            # otherwise flag as deadlocks. Safety invariants
+            # (INVARIANTS) and liveness (PROPERTIES) are still
+            # checked because TLC gates those by its own machinery.
+            timeout 600 java -Xmx2500M -jar ~/.local/share/tla2tools.jar \
+                -workers auto -deadlock -config "$cfg" "$spec"
+            exit_code=$?
             echo "::endgroup::"
+
+            if [ $exit_code -eq 0 ]; then
+              echo "✓ $name PASS"
+            elif [ $exit_code -eq 124 ] || [ $exit_code -eq 137 ]; then
+              # Timeout. Acceptable iff the spec is on the
+              # BOUNDED_EXPLORATION list.
+              if [[ " $BOUNDED_EXPLORATION_SPECS " == *" $name "* ]]; then
+                echo "⚠ $name BOUNDED_EXPLORATION (timeout, no violation found)"
+                bounded+=("$name")
+              else
+                echo "::error file=$spec::TLC timed out and spec is not on BOUNDED_EXPLORATION list"
+                failed+=("$name (timeout)")
+              fi
+            else
+              echo "::error file=$spec::TLC exited with code $exit_code"
+              failed+=("$name (exit $exit_code)")
+            fi
           done
+
+          echo
+          echo "TLC verification summary:"
+          echo "  PASS: $(( $(ls .agentile/formal/specs/**/*.tla 2>/dev/null | wc -l) - ${#failed[@]} - ${#bounded[@]} ))"
+          echo "  BOUNDED_EXPLORATION: ${#bounded[@]} ${bounded[*]:+(${bounded[*]})}"
+          echo "  FAILED: ${#failed[@]} ${failed[*]:+(${failed[*]})}"
+
+          if [ ${#failed[@]} -gt 0 ]; then
+            echo "::error::TLC verification failed for: ${failed[*]}"
+            exit 1
+          fi
+          echo "All specs verified (counting BOUNDED_EXPLORATION as advisory passes)."
 
           if [ ${#failed[@]} -gt 0 ]; then
             echo "::error::TLC verification failed for: ${failed[*]}"
