@@ -45,9 +45,16 @@ license-files = [
 ]
 
 [advisories]
+# cargo-deny ≥ 0.16 schema. Runtime's deny.toml uses the 0.14 schema
+# ("yanked = deny", "unmaintained = deny", "notice = deny") because
+# its CI pulls an older cargo-deny version. We use the GitHub action
+# which tracks newer schema, so the equivalent strict values are:
+#   unmaintained — "all" (was "deny")
+#   yanked       — "deny" still accepted
+#   notice       — removed; advisories of type "notice" are now
+#                  treated under the general vulnerability path
 yanked = "deny"
-unmaintained = "deny"
-notice = "deny"
+unmaintained = "all"
 ignore = []
 
 [bans]
