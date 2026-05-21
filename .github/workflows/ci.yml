@@ -149,8 +149,17 @@ jobs:
       # and resolving them requires the SSH config we wrote in the
       # earlier step — that lives on the runner host, not inside the
       # container.
+      #
+      # We intentionally do NOT pin a cargo-deny version: the RUSTSEC
+      # advisory database evolves (e.g. CVSS 4.0 support), and pinning
+      # an older cargo-deny means it can't parse newer advisories. The
+      # consequence is that a cargo-deny minor-version bump might
+      # tighten a check; that's acceptable per Rule 1's intent.
+      # Schema-level breakage is logged in deny.toml's comments.
       - name: Install cargo-deny
-        run: cargo install --locked --version 0.16.4 cargo-deny
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-deny
 
       - name: cargo deny check
         run: cargo deny check
