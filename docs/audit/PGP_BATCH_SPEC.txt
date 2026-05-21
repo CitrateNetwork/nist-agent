@@ -1,0 +1,12 @@
+%no-protection
+Key-Type: EDDSA
+Key-Curve: ed25519
+Key-Usage: sign,cert,auth
+Subkey-Type: ECDH
+Subkey-Curve: cv25519
+Subkey-Usage: encrypt
+Name-Real: Citrate nist-agent TOB engagement (v1.0-rc, S-13)
+Name-Comment: engagement-comms key; not for PolicyBundle signing
+Name-Email: security@citratenetwork.org
+Expire-Date: 2y
+%commit

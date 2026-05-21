@@ -1,0 +1,10 @@
+26 │     "OpenSSL",
+   │      ━━━━━━━ unmatched license allowance
+
+warning[license-not-encountered]: license was not encountered
+   ┌─ /home/saul/Documents/Projects/nist-agent/deny.toml:21:6
+   │
+21 │     "Unicode-DFS-2016",
+   │      ━━━━━━━━━━━━━━━━ unmatched license allowance
+
+advisories ok, bans FAILED, licenses FAILED, sources ok

@@ -43,6 +43,18 @@ SecurityOfficer key used for `PolicyBundle` signing is **not**
 the same key as the engagement-comms PGP key; do not conflate
 them.
 
+**Citrate-side engagement-comms PGP key.** Fingerprint:
+
+  `CCAB 2E1A 46A8 8B8A 7B3C  D377 FCFC DDF8 4584 16A1`
+
+Ed25519, expires 2028-05-20. ASCII-armored public key at
+[`PGP_PUBKEY.asc`](PGP_PUBKEY.asc); supporting metadata +
+verification instructions at
+[`PGP_FINGERPRINT.txt`](PGP_FINGERPRINT.txt). Verify the
+fingerprint out of band (voice call at first sync, or a
+signed message from a previously-trusted Citrate channel)
+before trusting.
+
 ## Response SLAs (Citrate side)
 
 Counted from receipt by the engagement lead, business days,
