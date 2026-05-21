@@ -66,8 +66,16 @@ jobs:
             name=$(basename "$spec" .tla)
             cfg="${spec%.tla}.cfg"
             echo "::group::TLC $name"
+            # -deadlock DISABLES TLC's default deadlock check
+            # (counter-intuitive flag name inherited from earlier TLC
+            # versions). Our specs include intentional terminal states
+            # (Executed, Rejected, Affirmed) which TLC would otherwise
+            # flag as deadlocks. Safety invariants (INVARIANTS) and
+            # liveness (PROPERTIES) are still checked because TLC
+            # gates those by their own machinery; ApprovalStateMachine's
+            # EventuallyTerminal liveness uses explicit fairness.
             if ! timeout 600 java -Xmx2500M -jar ~/.local/share/tla2tools.jar \
-                -workers auto -config "$cfg" "$spec"; then
+                -workers auto -deadlock -config "$cfg" "$spec"; then
               echo "::error file=$spec::TLC verification failed"
               failed+=("$name")
             fi
