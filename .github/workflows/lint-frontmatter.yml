@@ -64,9 +64,15 @@ jobs:
 
       - name: Check frontmatter on changed files
         if: ${{ steps.changed.outputs.files != '' }}
+        env:
+          CHANGED_FILES: ${{ steps.changed.outputs.files }}
         run: |
-          # shellcheck disable=SC2086
-          ./scripts/ci/check_frontmatter.py --files ${{ steps.changed.outputs.files }}
+          # The detect step emits newline-separated paths. Without
+          # joining, bash interprets each line after the first as a
+          # separate command (skeleton inheritance bug; surfaced on
+          # nist-agent PR #2). xargs feeds them as args to one
+          # check_frontmatter invocation.
+          echo "$CHANGED_FILES" | xargs ./scripts/ci/check_frontmatter.py --files
 
       - name: No relevant changes
         if: ${{ steps.changed.outputs.files == '' }}

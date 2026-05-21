@@ -47,8 +47,11 @@ jobs:
           curl -fL \
             https://github.com/tlaplus/tlaplus/releases/latest/download/tla2tools.jar \
             -o ~/.local/share/tla2tools.jar
-          # Sanity: file should be a valid JAR > 5 MB.
-          test "$(stat -c%s ~/.local/share/tla2tools.jar)" -gt 5000000
+          # Sanity: file should be a valid JAR > 1 MB. The official
+          # release artifact is ~2.2 MB as of 2026-05; bumping this
+          # threshold above the real size masks download corruption,
+          # bumping it below 1 MB stops catching truncated downloads.
+          test "$(stat -c%s ~/.local/share/tla2tools.jar)" -gt 1000000
           file ~/.local/share/tla2tools.jar | grep -qE "(Java archive|Zip archive)"
 
       - name: Verify every spec under .agentile/formal/specs/

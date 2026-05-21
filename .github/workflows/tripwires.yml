@@ -98,9 +98,12 @@ jobs:
 
       - name: Check frontmatter on added files
         if: ${{ steps.added.outputs.files != '' }}
+        env:
+          ADDED_FILES: ${{ steps.added.outputs.files }}
         run: |
-          # shellcheck disable=SC2086
-          ./scripts/ci/check_frontmatter.py --files ${{ steps.added.outputs.files }}
+          # Newline-separated paths joined into a single command
+          # invocation; see lint-frontmatter.yml for the same fix.
+          echo "$ADDED_FILES" | xargs ./scripts/ci/check_frontmatter.py --files
 
       - name: No new docs
         if: ${{ steps.added.outputs.files == '' }}
