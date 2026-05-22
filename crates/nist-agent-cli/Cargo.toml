@@ -18,6 +18,7 @@ nist-agent-doctor = { path = "../nist-agent-doctor" }
 nist-agent-model = { path = "../nist-agent-model" }
 nist-agent-release = { path = "../nist-agent-release" }
 nist-agent-policy = { path = "../nist-agent-policy" }
+nist-agent-daemon = { path = "../nist-agent-daemon" }
 clap = { workspace = true }
 anyhow = { workspace = true }
 serde_json = { workspace = true }
@@ -31,6 +32,8 @@ tracing-subscriber = { version = "0.3", features = ["fmt", "env-filter"] }
 # pulling in nist-agent-wizard's feat-ui surface. Default off so the
 # CLI builds without a Slint runtime in CI / air-gap.
 nist-agent-wizard = { path = "../nist-agent-wizard", optional = true }
+
+tempfile = "3.10"
 
 [dev-dependencies]
 tempfile = "3.10"

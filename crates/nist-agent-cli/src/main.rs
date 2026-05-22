@@ -53,8 +53,9 @@ enum Command {
     /// Verify and install a signed release bundle.
     Install(commands::install::InstallArgs),
 
-    /// Print daemon status (minimal in this sprint).
-    Status,
+    /// Connect to the daemon's IPC socket and print live status.
+    /// Falls back to a static readout when no daemon is reachable.
+    Status(commands::status::StatusArgs),
 
     /// Start the daemon loop (minimal in this sprint).
     Daemon(commands::daemon::DaemonArgs),
@@ -85,7 +86,7 @@ async fn main() -> Result<()> {
         Command::Doctor(args) => commands::doctor::run(args).await?,
         Command::Model { cmd } => commands::model::run(cmd).await?,
         Command::Install(args) => commands::install::run(args)?,
-        Command::Status => commands::status::run()?,
+        Command::Status(args) => commands::status::run(args).await?,
         Command::Daemon(args) => commands::daemon::run(args).await?,
         Command::Wizard => commands::wizard::run()?,
     };

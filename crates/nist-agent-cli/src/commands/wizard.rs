@@ -9,13 +9,15 @@ use anyhow::Result;
 
 #[cfg(feature = "feat-ui")]
 pub fn run() -> Result<i32> {
-    println!("citrate-agent wizard: Slint concierge surface");
-    println!(
-        "note: the wizard's headless render models are wired (S-10a); the runtime \
-         Slint window-up integration lands in S-12c. For now, use \
-         `cargo test -p nist-agent-wizard --features feat-ui` to exercise the surface."
-    );
-    Ok(0)
+    // The wizard's Slint window is in nist-agent-wizard::ui::launch.
+    // Blocking call; returns when the window closes.
+    match nist_agent_wizard::ui::launch() {
+        Ok(_wizard) => Ok(0),
+        Err(e) => {
+            eprintln!("wizard window failed: {e}");
+            Ok(2)
+        }
+    }
 }
 
 #[cfg(not(feature = "feat-ui"))]

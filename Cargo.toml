@@ -19,6 +19,7 @@ members = [
     "crates/nist-agent-mobile-pairing",
     "crates/nist-agent-release",
     "crates/nist-agent-cli",
+    "crates/nist-agent-daemon",
 ]
 resolver = "2"
 
