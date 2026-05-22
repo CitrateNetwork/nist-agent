@@ -1,0 +1,44 @@
+nist-agent v0.1.0-rc release-signing public key (Ed25519)
+==========================================================
+
+Posture:    SOFT KEY — pre-production / pre-release only.
+            See docs/audit/HSM_SEAM.md for the HSM swap-in path
+            that supersedes this soft-key shape for v1.0.0.
+
+Algorithm:  Ed25519
+Public hex: 634f1fe9d28b8e6704e758c8e08be29971ec605bec5da321e33e0b11e2398bde
+Generated:  2026-05-22 (S-12c → v0.1.0-rc tag prep)
+Held by:    GitHub Actions secret RELEASE_SIGNING_KEY_HEX on
+            CitrateNetwork/nist-agent (private half; not in repo)
+
+How operators consume it
+------------------------
+
+The installer (`citrate-agent install <bundle>`) verifies the
+release manifest's detached signature against this public key:
+
+    citrate-agent install /path/to/extracted-bundle \
+        --release-pubkey-hex 634f1fe9d28b8e6704e758c8e08be29971ec605bec5da321e33e0b11e2398bde
+
+Or via env:
+
+    NIST_AGENT_RELEASE_PUBKEY_HEX=634f1fe9d28b8e6704e758c8e08be29971ec605bec5da321e33e0b11e2398bde \
+    citrate-agent install /path/to/extracted-bundle
+
+Trust-root policy
+-----------------
+
+This soft key signs every release tagged BEFORE the HSM ceremony
+described in HSM_SEAM.md. Releases under this key are flagged
+`prerelease: true` in the GitHub release UI and marked
+"pre-release / not for production" in the release notes.
+
+When the HSM ceremony completes, a NEW public key is issued and
+recorded in CitrateNetwork/.github/SECURITY.md as the
+production trust root. This soft key is then **revoked**: a
+revocation record is added to this file documenting the
+soft → HSM transition date.
+
+Until that transition, operators who want to exercise the
+release path on the air-gap test runbook
+(`docs/audit/AIRGAP_TEST.md`) use the soft-key public above.

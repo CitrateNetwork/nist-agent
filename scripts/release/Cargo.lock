@@ -4176,6 +4176,7 @@ dependencies = [
  "ed25519-dalek",
  "hex",
  "nist-agent-release",
+ "rand 0.9.4",
 ]
 
 [[package]]
