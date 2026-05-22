@@ -5167,6 +5167,7 @@ dependencies = [
  "anyhow",
  "clap",
  "hex",
+ "nist-agent-daemon",
  "nist-agent-doctor",
  "nist-agent-model",
  "nist-agent-policy",
@@ -5179,6 +5180,23 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-subscriber 0.3.23",
+]
+
+[[package]]
+name = "nist-agent-daemon"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "citrate-agent-core",
+ "nist-agent-audit-sinks",
+ "nist-agent-prelude",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror 2.0.18",
+ "tokio",
+ "toml 0.8.23",
+ "tracing",
 ]
 
 [[package]]

@@ -10,6 +10,10 @@
 
 [licenses]
 confidence-threshold = 0.8
+# Stale-allowance warnings are informational; new sprints add deps
+# whose licenses may already be in `allow`. Without this, cargo-deny
+# treats unused-allowance as a failure on every PR that drops a dep.
+unused-allowed-license = "allow"
 
 allow = [
     "Apache-2.0",
@@ -24,6 +28,22 @@ allow = [
     "MPL-2.0",
     "CC0-1.0",
     "OpenSSL",
+    # NCSA — pulled in by libfuzzer-sys (transitive via the
+    # wasmtime fuzz harness in citrate-agent-core). Permissive,
+    # University-of-Illinois flavour of BSD; redistribution-safe.
+    "NCSA",
+    # CDLA-Permissive-2.0 — pulled in by webpki-roots. Community
+    # Data License Agreement, permissive variant; safe for our
+    # distribution shape.
+    "CDLA-Permissive-2.0",
+    # Slint's royalty-free-for-end-user-app distribution license.
+    # Our `feat-ui` Slint surface is consumed by the operator
+    # who runs nist-agent locally; royalty-free 2.0 permits this
+    # use without commercial licensing. The GPL-3.0 variant in
+    # the same `OR` clause is rejected via cargo-deny's
+    # confidence-threshold = 0.8 + the explicit allow here.
+    "LicenseRef-Slint-Royalty-free-2.0",
+    "LicenseRef-Slint-Software-3.0",
 ]
 
 [[licenses.exceptions]]

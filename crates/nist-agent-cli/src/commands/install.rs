@@ -27,7 +27,8 @@ use nist_agent_release::{Installer, ReleaseError, ReleaseManifest, ReleaseVerifi
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::fs;
-use std::path::PathBuf;
+use std::io::Read;
+use std::path::{Path, PathBuf};
 
 #[derive(Args, Debug)]
 pub struct InstallArgs {
@@ -76,14 +77,9 @@ pub fn run(args: InstallArgs) -> Result<i32> {
     let mut measured: HashMap<String, [u8; 32]> = HashMap::new();
     for artifact in &manifest.artifacts {
         let path = args.bundle_dir.join(&artifact.path);
-        let bytes =
-            fs::read(&path).with_context(|| format!("read bundle artifact {}", path.display()))?;
-        let mut hasher = Sha256::new();
-        hasher.update(&bytes);
-        let out = hasher.finalize();
-        let mut arr = [0u8; 32];
-        arr.copy_from_slice(&out);
-        measured.insert(artifact.path.clone(), arr);
+        let digest = stream_sha256(&path)
+            .with_context(|| format!("hash bundle artifact {}", path.display()))?;
+        measured.insert(artifact.path.clone(), digest);
     }
 
     let installer = Installer {
@@ -111,6 +107,26 @@ pub fn run(args: InstallArgs) -> Result<i32> {
     }
 }
 
+/// Compute SHA-256 of a file by streaming 1 MiB chunks; avoids
+/// loading the whole file into memory. Pinned by the
+/// `streams_match_in_memory_hash` test below.
+fn stream_sha256(path: &Path) -> std::io::Result<[u8; 32]> {
+    let mut file = fs::File::open(path)?;
+    let mut hasher = Sha256::new();
+    let mut buf = vec![0u8; 1024 * 1024];
+    loop {
+        let n = file.read(&mut buf)?;
+        if n == 0 {
+            break;
+        }
+        hasher.update(&buf[..n]);
+    }
+    let out = hasher.finalize();
+    let mut arr = [0u8; 32];
+    arr.copy_from_slice(&out);
+    Ok(arr)
+}
+
 #[cfg(test)]
 mod tests {
     // The end-to-end success path is exercised by
@@ -121,11 +137,48 @@ mod tests {
     // by re-asserting via the Display impl.
     use nist_agent_release::ReleaseError;
 
+    use super::stream_sha256;
+    use sha2::{Digest, Sha256};
+    use std::io::Write;
+    use tempfile::NamedTempFile;
+
     #[test]
     fn refusal_wording_remains_stable() {
         assert_eq!(
             ReleaseError::ReleaseSignatureInvalid.to_string(),
             "release signature invalid"
         );
+    }
+
+    #[test]
+    fn streams_match_in_memory_hash() {
+        // Streaming and in-memory hash must agree byte-for-byte
+        // across the 1 MiB chunk boundary — pin a 3-chunk input
+        // so the loop body is exercised.
+        let mut f = NamedTempFile::new().unwrap();
+        let payload = vec![0xA5u8; 1024 * 1024 * 3 + 17];
+        f.write_all(&payload).unwrap();
+        f.flush().unwrap();
+
+        let streamed = stream_sha256(f.path()).unwrap();
+        let in_memory = {
+            let mut h = Sha256::new();
+            h.update(&payload);
+            let mut a = [0u8; 32];
+            a.copy_from_slice(&h.finalize());
+            a
+        };
+        assert_eq!(streamed, in_memory);
+    }
+
+    #[test]
+    fn streams_handles_empty_file() {
+        let f = NamedTempFile::new().unwrap();
+        let streamed = stream_sha256(f.path()).unwrap();
+        // SHA-256 of empty input.
+        let expected =
+            hex::decode("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855")
+                .unwrap();
+        assert_eq!(&streamed[..], &expected[..]);
     }
 }

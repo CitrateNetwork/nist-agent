@@ -1,0 +1,24 @@
+[package]
+name = "nist-agent-daemon"
+description = "Long-running daemon process for nist-agent — holds ApprovalQueue + AuditChain + ChainClient state, runs the anchor-cadence ticker, exposes a Unix-socket IPC surface per RFC §10.2. Consumed by `citrate-agent daemon`."
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+nist-agent-prelude = { path = "../nist-agent-prelude" }
+nist-agent-audit-sinks = { path = "../nist-agent-audit-sinks" }
+citrate-agent-core = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+toml = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+tokio = { workspace = true }
+anyhow = { workspace = true }
+
+[dev-dependencies]
+tempfile = "3.10"

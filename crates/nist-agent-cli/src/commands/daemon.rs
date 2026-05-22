@@ -1,41 +1,65 @@
-//! `citrate-agent daemon` — minimal daemon entry point.
+//! `citrate-agent daemon` — load config, bind IPC, run the
+//! event loop until SIGINT / SIGTERM.
 //!
-//! v1 ships a no-op long-running process that:
-//!
-//! - prints a startup banner with the same identity readout as
-//!   `status`,
-//! - sleeps until SIGINT / SIGTERM,
-//! - exits cleanly with code 0.
-//!
-//! This is enough to satisfy the air-gap test runbook's "the
-//! daemon starts cleanly" check + to give the GHA workflow a
-//! `bin` target to package. The real event loop (HITL queue
-//! processing, audit-anchor cadence, IPC socket) lands in
-//! S-12c.
+//! Composition: this command owns argument parsing + config
+//! loading + tracing init; the actual daemon lifecycle lives in
+//! `nist-agent-daemon::Daemon`. The `--smoke` flag stops after
+//! `bind()` so the air-gap test can confirm the daemon boots
+//! without entering the run loop.
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use clap::Args;
+use nist_agent_daemon::{Daemon, DaemonConfig};
+use std::path::PathBuf;
 
 #[derive(Args, Debug)]
 pub struct DaemonArgs {
-    /// Exit immediately after the startup banner — used by the
-    /// air-gap test to confirm the binary boots without
-    /// actually running the (not-yet-implemented) loop.
+    /// Path to the daemon's TOML config. Required.
+    #[arg(long)]
+    pub config: Option<PathBuf>,
+
+    /// Exit cleanly after IPC socket bind — used by the air-
+    /// gap test to confirm the daemon comes up without
+    /// entering the run loop. When set, --config is optional
+    /// and a scratch-dir fixture is used.
     #[arg(long)]
     pub smoke: bool,
 }
 
 pub async fn run(args: DaemonArgs) -> Result<i32> {
-    println!("citrate-agent {} starting", env!("CARGO_PKG_VERSION"));
-    println!("note: v1 daemon is a no-op skeleton; event loop lands in S-12c");
+    let config = match (args.config, args.smoke) {
+        (Some(path), _) => DaemonConfig::from_path(&path)
+            .with_context(|| format!("load daemon config {}", path.display()))?,
+        (None, true) => {
+            let scratch = tempfile::Builder::new()
+                .prefix("citrate-agent-smoke-")
+                .tempdir()
+                .context("create smoke scratch dir")?;
+            // Leak the tempdir so the socket survives serve_once.
+            // It cleans up on process exit.
+            let path = scratch.keep();
+            DaemonConfig::fixture(&path)
+        }
+        (None, false) => {
+            eprintln!("--config is required (or use --smoke for a scratch run)");
+            return Ok(2);
+        }
+    };
+
+    let mut daemon = Daemon::prepare(config).context("prepare daemon")?;
+    let socket = daemon.bind().context("bind IPC socket")?;
+    println!(
+        "citrate-agent daemon {} listening at {}",
+        env!("CARGO_PKG_VERSION"),
+        socket.display(),
+    );
 
     if args.smoke {
-        println!("smoke mode — exiting after banner");
+        println!("smoke mode — IPC bound; exiting before run loop");
         return Ok(0);
     }
 
-    // Wait for SIGINT / SIGTERM, then exit cleanly.
-    tokio::signal::ctrl_c().await.ok();
-    println!("citrate-agent shutting down");
+    daemon.run_until_signal().await.context("run loop")?;
+    println!("citrate-agent daemon shutting down");
     Ok(0)
 }
