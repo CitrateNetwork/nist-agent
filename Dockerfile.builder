@@ -17,10 +17,11 @@
 # The image is `Apache-2.0` like the workspace and intentionally
 # small (Debian slim base + Rust + native build deps).
 
-# Pin by digest so re-builds against the same base are
-# deterministic. Update the digest in tandem with
-# rust-toolchain.toml bumps.
-FROM debian:bookworm-slim@sha256:5dc1d8095c83f6dfa1c46d99e2fc8e5b6dab625ec9b6d8a8b8e9d6b8d7e8e9b8
+# Pin by digest (multi-platform index) so re-builds against the
+# same base are deterministic. Update the digest in tandem with
+# rust-toolchain.toml bumps. Resolve a current digest with:
+#   docker buildx imagetools inspect debian:bookworm-slim
+FROM debian:bookworm-slim@sha256:0104b334637a5f19aa9c983a91b54c89887c0984081f2068983107a6f6c21eeb
 
 ARG RUST_VERSION=stable
 
