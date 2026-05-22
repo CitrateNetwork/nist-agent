@@ -6,7 +6,7 @@ Posture:    SOFT KEY — pre-production / pre-release only.
             that supersedes this soft-key shape for v1.0.0.
 
 Algorithm:  Ed25519
-Public hex: 634f1fe9d28b8e6704e758c8e08be29971ec605bec5da321e33e0b11e2398bde
+Public hex: ac6ac3e45e88befb7e1b600a68baa7b75a1289bba4bec092807fcebafd090fd7
 Generated:  2026-05-22 (S-12c → v0.1.0-rc tag prep)
 Held by:    GitHub Actions secret RELEASE_SIGNING_KEY_HEX on
             CitrateNetwork/nist-agent (private half; not in repo)
@@ -18,11 +18,11 @@ The installer (`citrate-agent install <bundle>`) verifies the
 release manifest's detached signature against this public key:
 
     citrate-agent install /path/to/extracted-bundle \
-        --release-pubkey-hex 634f1fe9d28b8e6704e758c8e08be29971ec605bec5da321e33e0b11e2398bde
+        --release-pubkey-hex ac6ac3e45e88befb7e1b600a68baa7b75a1289bba4bec092807fcebafd090fd7
 
 Or via env:
 
-    NIST_AGENT_RELEASE_PUBKEY_HEX=634f1fe9d28b8e6704e758c8e08be29971ec605bec5da321e33e0b11e2398bde \
+    NIST_AGENT_RELEASE_PUBKEY_HEX=ac6ac3e45e88befb7e1b600a68baa7b75a1289bba4bec092807fcebafd090fd7 \
     citrate-agent install /path/to/extracted-bundle
 
 Trust-root policy
