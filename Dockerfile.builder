@@ -59,6 +59,13 @@ RUN cargo install cargo-audit --locked --version 0.22.1 \
 # Default workdir; the GHA workflow bind-mounts the repo here.
 WORKDIR /work
 
+# Entrypoint chowns /host-ssh -> /root/.ssh so cargo's
+# git-fetch-with-cli can resolve the federation host aliases.
+# Silently skipped when /host-ssh isn't mounted (local ad-hoc).
+COPY scripts/release/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
+
 # Default to a no-op so the image is composable; the GHA
 # workflow drives explicit `cargo build / test / package`
 # invocations.

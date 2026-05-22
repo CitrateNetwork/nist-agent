@@ -82,15 +82,23 @@ jobs:
         run: docker build -f Dockerfile.builder -t nist-agent-builder .
 
       - name: build citrate-agent bin (default features)
-        # Mount ~/.ssh into the container so cargo's `git-fetch-with-cli`
-        # can use the host aliases. Container runs as root, so the
-        # target path is /root/.ssh.
+        # Bind-mount the runner's ~/.ssh as a read-only /host-ssh
+        # then copy + chown to /root/.ssh inside the container.
+        # SSH refuses configs not owned by the current user, so a
+        # straight bind-mount of ~/.ssh -> /root/.ssh fails with
+        # "Bad owner or permissions on /root/.ssh/config" because
+        # the bind-mount preserves the runner uid (1001).
         run: |
           docker run --rm \
             -v "$PWD":/work -w /work \
-            -v "$HOME/.ssh":/root/.ssh:ro \
+            -v "$HOME/.ssh":/host-ssh:ro \
             nist-agent-builder \
-            cargo build --release --bin citrate-agent --locked
+            bash -c '
+              mkdir -p /root/.ssh && cp -L /host-ssh/* /root/.ssh/ &&
+              chown -R root:root /root/.ssh &&
+              chmod 700 /root/.ssh && chmod 600 /root/.ssh/* &&
+              cargo build --release --bin citrate-agent --locked
+            '
 
       - name: hash binary
         run: |
@@ -190,7 +198,7 @@ jobs:
         run: |
           docker run --rm \
             -v "$PWD":/work -w /work \
-            -v "$HOME/.ssh":/root/.ssh:ro \
+            -v "$HOME/.ssh":/host-ssh:ro \
             nist-agent-builder:${{ steps.tag.outputs.tag }} \
             bash -lc '
               cargo fmt --all -- --check &&
@@ -204,7 +212,7 @@ jobs:
           # operator opt-ins, not the default release shape.
           docker run --rm \
             -v "$PWD":/work -w /work \
-            -v "$HOME/.ssh":/root/.ssh:ro \
+            -v "$HOME/.ssh":/host-ssh:ro \
             nist-agent-builder:${{ steps.tag.outputs.tag }} \
             cargo build --release --bin citrate-agent
 
@@ -223,7 +231,7 @@ jobs:
         run: |
           docker run --rm \
             -v "$PWD":/work -w /work \
-            -v "$HOME/.ssh":/root/.ssh:ro \
+            -v "$HOME/.ssh":/host-ssh:ro \
             nist-agent-builder:${{ steps.tag.outputs.tag }} \
             cargo audit > release-staging/sbom/cargo-audit.txt
 
@@ -231,7 +239,7 @@ jobs:
         run: |
           docker run --rm \
             -v "$PWD":/work -w /work \
-            -v "$HOME/.ssh":/root/.ssh:ro \
+            -v "$HOME/.ssh":/host-ssh:ro \
             nist-agent-builder:${{ steps.tag.outputs.tag }} \
             bash -lc '
               cargo install --locked cargo-cyclonedx --version 0.5.7 &&
@@ -267,7 +275,7 @@ jobs:
           fi
           docker run --rm \
             -v "$PWD":/work -w /work \
-            -v "$HOME/.ssh":/root/.ssh:ro \
+            -v "$HOME/.ssh":/host-ssh:ro \
             -e RELEASE_SIGNING_KEY_HEX \
             nist-agent-builder:${{ steps.tag.outputs.tag }} \
             cargo run --release --quiet \
