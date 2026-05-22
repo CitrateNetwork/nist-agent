@@ -64,6 +64,19 @@ def main(argv=None) -> int:
         print(f"staging dir not found: {staging}", file=sys.stderr)
         return 2
 
+    # Resolve --out so relative_to(staging) works regardless of
+    # whether the caller passed an absolute or relative path.
+    # The output may live outside the staging dir (e.g. in CI it
+    # lives at release-staging/release.manifest.toml relative to
+    # the workflow's CWD, which resolves to the same absolute
+    # path as `staging`).
+    out_abs = args.out.resolve() if args.out.is_absolute() else (Path.cwd() / args.out).resolve()
+    try:
+        out_rel_to_staging = out_abs.relative_to(staging).as_posix()
+    except ValueError:
+        # --out is outside --staging; nothing to skip.
+        out_rel_to_staging = None
+
     entries = []
     for root, _dirs, files in os.walk(staging):
         # Deterministic order: sort dirs + files.
@@ -71,7 +84,7 @@ def main(argv=None) -> int:
             abs_path = Path(root) / fname
             rel_path = abs_path.relative_to(staging).as_posix()
             # Skip the manifest itself (we're producing it).
-            if rel_path == args.out.relative_to(staging).as_posix():
+            if out_rel_to_staging is not None and rel_path == out_rel_to_staging:
                 continue
             kind = classify(rel_path)
             sha = sha256_of(abs_path)
