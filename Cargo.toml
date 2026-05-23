@@ -39,7 +39,7 @@ rust-version = "1.78"
 #
 # When the federation bumps this rev (via pin-bump.sh), this line
 # is the single edit point.
-citrate-agent-core = { version = "0.4", git = "ssh://git@github-citrate-agent-runtime/CitrateNetwork/citrate-agent-runtime", rev = "2591ed2d28780ca7938befe853be7cd1620029cc" }
+citrate-agent-core = { version = "0.4", git = "ssh://git@github-citrate-agent-runtime/CitrateNetwork/citrate-agent-runtime", rev = "557f6ee614c4a2db28ca9c13f3b2341c83d43e19" }
 
 # Chain primitives from citrate-chain. Rev MUST match the federation
 # manifest's [repos.citrate-chain].rev (currently
