@@ -66,3 +66,91 @@ at least one new test fail; all restorations verified by a clean
   (release-pipeline findings from the follow-up audit) are out of this
   WP's scope (inaugural-audit findings only) and remain open on the
   citrate-security team board.
+
+---
+
+# Phase 7 — WP 7.3: reproducible, locked, hash-bound release pipeline
+
+- **Date:** 2026-06-11. **Branch:** `audit/secrem02-release-repro`.
+- **Scope:** FUA-NIST-AGENT-01, -02, -03 (release-reproducibility
+  cluster, 2026-06-09 follow-up audit,
+  `per-repo/nist-agent/REPORT.md`). CI/workflow surface only — no
+  crate source changed.
+- **Baseline:** 275 expected = 266 (post-WP-6.1 baseline) + 9 new;
+  pre-WP suite re-confirmed at **266 passed / 0 failed** (32 suites)
+  on `a9cb03a`.
+- **Re-verification at `a9cb03a`:** all three findings confirmed open
+  at the report's cited lines — release build without `--locked`
+  (`release.yml:217`), shipped binary a third uncompared build
+  (`:209-223`), `continue-on-error` audit (`:230`), release-time
+  `cargo install` (`:245`), `ssh-keyscan` TOFU + `accept-new`
+  (`:59,:71,:77,:159,:171,:177`).
+
+## Findings table
+
+| Finding | Sev | Red test(s) | Fix | Suite | Mutation | Disposition |
+|---|---|---|---|---|---|---|
+| FUA-NIST-AGENT-01 — shipped binary never repro-gated; release build unpinned | MED | `crates/nist-agent-release/tests/release_pipeline_tripwires.rs`: `every_release_cargo_invocation_is_locked`, `shipped_binary_is_the_repro_gated_artifact`, `manifest_step_binds_the_gated_hash` + 3 behavioral `build_manifest_expect` tests (RED confirmed: 7/9 failing pre-fix) | `release.yml`: binary built exactly once, inside the `--locked` repro matrix; machine A uploads `bin-machine-A` as THE release artifact; publish job (`needs: repro-compare`) downloads it, re-hashes against both machine hashes (fail-closed), stages the downloaded file — no rebuild exists. `--locked` added to clippy/test/sign `cargo run`; `--locked` build semantics fail the release on a stale `Cargo.lock`. `scripts/release/build_manifest.py`: new repeatable `--expect PATH=SHA256` aborts (exit 2/3) before writing any manifest on malformed spec, missing staged file, or hash mismatch; workflow passes `--expect bin/citrate-agent=<gated sha>` so the signed manifest is bound to the gate hash | green | M1 (`--locked` dropped from matrix build), M2a (publish `needs:` decoupled from `repro-compare`), M2b (rebuild + local-binary staging reintroduced), M6 (`--expect` verification neutralized), M7 (`--expect` arg dropped from workflow) → tripwires FAIL each time; restored | **FIXED** |
+| FUA-NIST-AGENT-02 — `ssh-keyscan` TOFU + `accept-new` for deploy-key fetch | LOW | `github_host_keys_are_pinned_not_tofu` (RED confirmed) | Both SSH-setup steps now write GitHub's published host keys (Meta API `https://api.github.com/meta` → `ssh_keys`: ed25519 + ecdsa + rsa) literally into `known_hosts`; `StrictHostKeyChecking yes`; `ssh-keyscan` and `accept-new` removed. Host-key rotation fails the release closed (documented in workflow header) | green | M4a (keyscan re-added), M4b (`yes`→`accept-new`) → tripwire FAILS; restored | **FIXED** |
+| FUA-NIST-AGENT-03 — advisory gate `continue-on-error`; release-time `cargo install` | LOW | `advisory_gate_blocks_release`, `release_path_needs_no_network_tool_install` (RED confirmed) | `continue-on-error` removed: `cargo audit` now blocks a tagged release (accepting an advisory = explicit `[advisories] ignore`, never soft-fail). `cargo install cargo-cyclonedx --locked --version 0.5.7` moved out of the workflow into `Dockerfile.builder` pre-cache alongside cargo-audit/cargo-deny; release path performs no network tool install | green | M3 (`continue-on-error: true` re-added), M5a (release-time install re-added), M5b (cyclonedx pre-cache dropped from Dockerfile.builder) → tripwires FAIL; restored | **FIXED** |
+
+## Hygiene (from the same report)
+
+- **HYG-DUP** — the repro-matrix build step's inline `/host-ssh` →
+  `/root/.ssh` copy/chown removed; the image ENTRYPOINT
+  (`scripts/release/docker-entrypoint.sh`) is the single source of
+  truth (the build job's other docker runs already relied on it).
+- **DOC-CLAIM** — partially reconciled: release-time tool installs
+  eliminated; dependency *source* fetch (federation git deps) still
+  occurs at build time by design and remains documented as such.
+
+## Test strategy note
+
+The defective surface is workflow YAML + a Python script — invisible
+to `cargo test` by default. Per the SECREM-02 source-tripwire
+pattern, `release_pipeline_tripwires.rs` (nist-agent-release crate)
+reads `.github/workflows/release.yml` + `Dockerfile.builder` from the
+repo root and pins the invariants (locked builds, single gated build,
+artifact carry-forward + hash compare, `needs: repro-compare`, pinned
+host keys, no keyscan/accept-new/continue-on-error/cargo-install),
+plus three behavioral tests that execute `build_manifest.py` against
+scratch staging dirs to pin the `--expect` hash-binding contract.
+Negative needles scan *effective* (non-comment) lines so workflow
+comments may document the banned constructs.
+
+## Mutation pass summary
+
+9 mutations (M1, M2a, M2b, M3, M4a, M4b, M5a, M5b, M6, M7 — M2a/M2b
+count as two surfaces of one fix): every mutation made at least one
+new test fail; all restorations verified by a clean `git status`
+against the fix commit and a final full-suite green run.
+
+## Final state
+
+- Suite: **275 passed / 0 failed** (33 suites) — +9 over the
+  266-test WP 6.1 baseline.
+- `cargo fmt --all -- --check` clean; `cargo clippy --workspace
+  --all-targets --locked -- -D warnings` clean.
+- `release.yml` re-validated as parseable YAML; actionlint runs in CI
+  (`lint-workflows.yml`).
+
+## Deviations / notes
+
+- During the first mutation run the workflow fix was still
+  uncommitted, so the `git checkout --` restore reverted it to the
+  pre-fix HEAD and invalidated two mutation results; the fix was
+  re-applied, committed first, and the **entire** mutation pass
+  re-run against the committed fix (results above are from the
+  re-run).
+- Two of the nine red tripwires (`--expect` mismatch/missing cases)
+  passed pre-fix for the wrong reason (argparse rejected the unknown
+  flag); their teeth were proven in mutation M6, where neutralizing
+  the verification logic (flag accepted, checks skipped) made both
+  fail.
+- GitHub host-key pins were taken from the Meta API over TLS at
+  remediation time, not from any keyscan. If GitHub rotates keys the
+  release fails closed; update procedure is in the workflow header.
+- `cargo audit` and `cargo cyclonedx` are not passed `--locked`
+  (audit reads `Cargo.lock` directly; cyclonedx 0.5.7 has no such
+  flag) — lock freshness is enforced by the `--locked` build/test
+  steps that precede them in the same job.
