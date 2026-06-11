@@ -11,6 +11,7 @@ rust-version.workspace = true
 [dependencies]
 nist-agent-prelude = { path = "../nist-agent-prelude" }
 nist-agent-audit-sinks = { path = "../nist-agent-audit-sinks" }
+nist-agent-policy = { path = "../nist-agent-policy" }
 citrate-agent-core = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
@@ -19,6 +20,10 @@ thiserror = { workspace = true }
 tracing = { workspace = true }
 tokio = { workspace = true }
 anyhow = { workspace = true }
+hex = { workspace = true }
+ciborium = { workspace = true }
+ed25519-dalek = { workspace = true }
+libc = "0.2"
 
 [dev-dependencies]
 tempfile = "3.10"

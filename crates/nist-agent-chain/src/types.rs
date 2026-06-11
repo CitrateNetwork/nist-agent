@@ -98,7 +98,10 @@ impl ContractAddresses {
     pub fn citrate_mainnet() -> Self {
         // TBC: real addresses come from citrate-chain's v1 deploy.
         // Filling with deterministic placeholders for now; replaced
-        // when citrate-chain tags v1 contracts.
+        // when citrate-chain tags v1 contracts. While these are
+        // placeholders, `is_placeholder()` returns true and the
+        // production constructor refuses to consume them
+        // (NIST_AGENT-2026-05-31-007 ship-guard).
         Self {
             organization_sbt: [0x01; 20],
             agent_sbt: [0x02; 20],
@@ -106,5 +109,42 @@ impl ContractAddresses {
             anchor_registry: [0x04; 20],
             benchmark_registry: [0x05; 20],
         }
+    }
+
+    /// True while this set is the pre-deployment placeholder
+    /// pattern (`[0x01..0x05; 20]`). Ship-guard
+    /// (NIST_AGENT-2026-05-31-007): production constructors
+    /// refuse placeholder addresses so a pre-v1 build can never
+    /// silently anchor against nonexistent or squatted contracts.
+    /// Flips to false the day `citrate_mainnet()` carries the
+    /// real v1 deployment.
+    pub fn is_placeholder(&self) -> bool {
+        self.organization_sbt == [0x01; 20]
+            && self.agent_sbt == [0x02; 20]
+            && self.capsule_registry == [0x03; 20]
+            && self.anchor_registry == [0x04; 20]
+            && self.benchmark_registry == [0x05; 20]
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn citrate_mainnet_is_flagged_placeholder_until_v1_deploy() {
+        // NIST_AGENT-2026-05-31-007: while the canonical mainnet
+        // set is the deterministic [0x01..0x05; 20] pattern, the
+        // ship-guard must report it as a placeholder. When the
+        // real v1 addresses land, update citrate_mainnet() and
+        // this pin flips with it.
+        assert!(ContractAddresses::citrate_mainnet().is_placeholder());
+    }
+
+    #[test]
+    fn real_looking_addresses_are_not_flagged_placeholder() {
+        let mut a = ContractAddresses::citrate_mainnet();
+        a.anchor_registry = [0xAB; 20];
+        assert!(!a.is_placeholder());
     }
 }

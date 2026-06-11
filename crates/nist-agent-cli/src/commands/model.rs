@@ -87,9 +87,11 @@ fn run_verify(args: VerifyArgs) -> Result<i32> {
 }
 
 async fn run_infer(args: InferArgs) -> Result<i32> {
-    // SI-7 first. The embedded backend's load_verified() relies
-    // on the caller having checked the hash; we do that here so
-    // the inference path can never load a tampered GGUF.
+    // SI-7 first. The embedded backend's load_verified_bytes()
+    // relies on the caller having checked the hash over the SAME
+    // bytes it passes in; we do that here so the inference path
+    // can never load a tampered GGUF — not even via a path swap
+    // in the check-to-use window.
     let toml_str = fs::read_to_string(&args.manifest)
         .with_context(|| format!("read manifest {}", args.manifest.display()))?;
     let manifest = ReleaseManifest::from_toml(&toml_str)
@@ -100,12 +102,16 @@ async fn run_infer(args: InferArgs) -> Result<i32> {
         eprintln!("{e}");
         return Ok(2);
     }
-    // Free the bytes before llama.cpp mmaps the file itself.
+    // SI-7 TOCTOU fix (NIST_AGENT-2026-05-31-002): hand the
+    // loader the exact bytes the hash check just verified — the
+    // backend stages them privately and never re-opens
+    // `args.gguf`, so a swap of the operator path between check
+    // and load cannot reach inference.
+    let backend = EmbeddedLlamaCpp::load_verified_bytes(&gguf_bytes, &args.gguf)
+        .with_context(|| format!("load GGUF {}", args.gguf.display()))?;
     drop(gguf_bytes);
 
     let prompt = resolve_prompt(args.prompt, args.prompt_file)?;
-    let backend = EmbeddedLlamaCpp::load_verified(&args.gguf)
-        .with_context(|| format!("load GGUF {}", args.gguf.display()))?;
 
     use nist_agent_model::ModelBackend;
     match backend.infer(&prompt).await {

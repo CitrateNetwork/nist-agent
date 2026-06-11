@@ -57,6 +57,18 @@ impl WormFilesystemSink {
         // sequence even with plain `ls`. u64 max is 20 digits.
         self.dir.join(format!("{sequence:020}.cbor"))
     }
+
+    /// fsync the sink directory itself so the directory entry
+    /// naming a just-written record is durable. Without this, a
+    /// crash after the file fsync but before the dir entry hits
+    /// disk silently drops the newest record — breaking the
+    /// `previous_hash` chain (NIST_AGENT-2026-05-31-005).
+    fn sync_parent_dir(&self) -> Result<(), AgentError> {
+        let dir = File::open(&self.dir)
+            .map_err(|e| AgentError::Audit(format!("open dir {}: {e}", self.dir.display())))?;
+        dir.sync_all()
+            .map_err(|e| AgentError::Audit(format!("fsync dir {}: {e}", self.dir.display())))
+    }
 }
 
 impl AuditSink for WormFilesystemSink {
@@ -81,10 +93,12 @@ impl AuditSink for WormFilesystemSink {
         let bytes = citrate_agent_core::audit::canonical_cbor(record)?;
         file.write_all(&bytes)
             .map_err(|e| AgentError::Audit(format!("write {}: {e}", path.display())))?;
-        // fsync the file + the directory entry. Crash safety for
-        // FedRAMP-grade durability.
+        // fsync the file, THEN the parent directory entry — both
+        // are required for crash durability of the just-written
+        // record (FedRAMP-grade durability claim).
         file.sync_all()
             .map_err(|e| AgentError::Audit(format!("fsync {}: {e}", path.display())))?;
+        self.sync_parent_dir()?;
         Ok(())
     }
 
@@ -190,6 +204,36 @@ mod tests {
             .map(|r| r.expect("decode").sequence)
             .collect();
         assert_eq!(records, vec![0, 1, 2, 3, 4, 5]);
+    }
+
+    #[test]
+    fn append_fsyncs_the_directory_entry() {
+        // RED for NIST_AGENT-2026-05-31-005: append() fsynced the
+        // record FILE but never the parent DIRECTORY entry, so a
+        // crash between record write and dir sync could silently
+        // drop the newest audit record — breaking the hash chain
+        // the FedRAMP durability claim rests on. Crash injection
+        // isn't portable in unit tests, so this pins the source:
+        // append must call the parent-dir fsync helper after the
+        // file fsync, and the helper must work on a live sink.
+        let src = include_str!("worm.rs");
+        let append_body = src
+            .split("fn append")
+            .nth(1)
+            .expect("append exists")
+            .split("fn iter")
+            .next()
+            .expect("iter follows append");
+        assert!(
+            append_body.contains("self.sync_parent_dir()"),
+            "append() must fsync the parent directory entry after the file fsync"
+        );
+
+        // And the helper must succeed against a real sink dir.
+        let tmp = TempDir::new().expect("tempdir");
+        let sink = WormFilesystemSink::open(tmp.path()).expect("open");
+        sink.append(&fixture_record(0)).expect("append");
+        sink.sync_parent_dir().expect("parent dir fsync succeeds");
     }
 
     #[test]

@@ -21,6 +21,10 @@ url = { workspace = true }
 futures = { workspace = true }
 tokio = { workspace = true }
 tokio-stream = { workspace = true }
+# SI-7 TOCTOU fix (NIST_AGENT-2026-05-31-002): verified GGUF bytes
+# are staged into a private 0700 tempdir so the bytes the loader
+# opens are exactly the bytes the hash gate verified.
+tempfile = "3.10"
 
 # `feat-model-llamacpp` wires the embedded llama.cpp inference
 # backend (resolver step 3, RFC §3.3). Gated because the dep

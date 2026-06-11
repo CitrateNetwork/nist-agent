@@ -24,6 +24,7 @@ pub mod config;
 pub mod daemon;
 pub mod error;
 pub mod ipc;
+mod policy;
 
 pub use config::{AnchorStrategy, DaemonConfig};
 pub use daemon::Daemon;

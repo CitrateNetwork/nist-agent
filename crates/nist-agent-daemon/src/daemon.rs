@@ -22,6 +22,8 @@ use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::net::{UnixListener, UnixStream};
 use tokio::sync::Mutex;
 
+use nist_agent_policy::PolicyBundle;
+
 use crate::config::DaemonConfig;
 use crate::error::DaemonError;
 use crate::ipc::{AuditSummary, IpcRequest, IpcResponse, IPC_PROTOCOL_VERSION};
@@ -31,6 +33,13 @@ use crate::ipc::{AuditSummary, IpcRequest, IpcResponse, IPC_PROTOCOL_VERSION};
 #[derive(Debug)]
 pub struct DaemonState {
     pub config: DaemonConfig,
+    /// The verified-and-activated PolicyBundle when the operator
+    /// configured one. Loaded fail-closed at `Daemon::prepare`
+    /// (NIST_AGENT-2026-05-31-001): a configured bundle that
+    /// fails to read/verify/activate refuses startup. `None` only
+    /// in the documented minimal/air-gap smoke mode (no
+    /// `policy.bundle_path` set). Runtime surfaces gate on this.
+    pub policy: Option<PolicyBundle>,
     /// Wall-clock unix-time of the last successful anchor write.
     /// Surfaced via `IpcResponse::Status::last_anchor_unix`.
     pub last_anchor_unix: Mutex<Option<i64>>,
@@ -49,9 +58,10 @@ pub struct DaemonState {
 }
 
 impl DaemonState {
-    fn new(config: DaemonConfig) -> Arc<Self> {
+    fn new(config: DaemonConfig, policy: Option<PolicyBundle>) -> Arc<Self> {
         Arc::new(Self {
             config,
+            policy,
             last_anchor_unix: Mutex::new(None),
             recent_audit: Mutex::new(Vec::new()),
             queue_depth: Mutex::new(0),
@@ -65,13 +75,16 @@ pub struct Daemon {
 }
 
 impl Daemon {
-    /// Validate config + prepare the audit-sink directory. Does
-    /// not bind the IPC socket — that happens in `bind`.
+    /// Validate config, load + verify + activate the configured
+    /// PolicyBundle (fail-closed; NIST_AGENT-2026-05-31-001), and
+    /// prepare the audit-sink directory. Does not bind the IPC
+    /// socket — that happens in `bind`.
     pub fn prepare(config: DaemonConfig) -> Result<Self, DaemonError> {
         config.validate()?;
+        let policy = crate::policy::load_policy(&config)?;
         std::fs::create_dir_all(&config.daemon.audit_sink_path)
             .map_err(|e| DaemonError::Filesystem(format!("mkdir audit_sink_path: {e}")))?;
-        let state = DaemonState::new(config);
+        let state = DaemonState::new(config, policy);
         Ok(Self {
             state,
             listener: None,
@@ -100,6 +113,16 @@ impl Daemon {
         }
         let listener = UnixListener::bind(&path)
             .map_err(|e| DaemonError::Io(format!("bind socket {}: {e}", path.display())))?;
+        // Owner-only socket (NIST_AGENT-2026-05-31-003): without
+        // this the umask default leaves the socket world-
+        // connectable and any local user can read audit/queue
+        // metadata. Fail closed if the chmod doesn't take.
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600))
+                .map_err(|e| DaemonError::Filesystem(format!("chmod socket 0600: {e}")))?;
+        }
         self.listener = Some(listener);
         Ok(path)
     }
@@ -189,23 +212,52 @@ impl Daemon {
     }
 }
 
-/// One IPC connection — read line, dispatch, write line. The
-/// daemon serves one request per connection in v1.0; long-lived
-/// streaming subscriptions are reserved for v1.1.
-async fn handle_connection(stream: UnixStream, state: Arc<DaemonState>) -> Result<(), DaemonError> {
-    let (reader, mut writer) = stream.into_split();
-    let mut buf = BufReader::new(reader);
-    let mut line = String::new();
-    buf.read_line(&mut line)
-        .await
-        .map_err(|e| DaemonError::Io(format!("read line: {e}")))?;
+/// The daemon's own effective uid — IPC peers must match it (or
+/// be root) to be served.
+fn process_euid() -> u32 {
+    // SAFETY: geteuid() has no failure modes and touches no
+    // memory; it always returns the process's effective uid.
+    unsafe { libc::geteuid() }
+}
 
-    let response = match IpcRequest::from_line(&line) {
-        Ok(req) => dispatch(req, &state).await,
-        Err(e) => IpcResponse::Error {
+/// Peer-credential gate (NIST_AGENT-2026-05-31-003): only the
+/// daemon's own uid or root may query the socket.
+fn peer_authorized(peer_uid: u32) -> bool {
+    peer_uid == 0 || peer_uid == process_euid()
+}
+
+/// One IPC connection — peer-cred gate, read line, dispatch,
+/// write line. The daemon serves one request per connection in
+/// v1.0; long-lived streaming subscriptions are reserved for
+/// v1.1.
+async fn handle_connection(stream: UnixStream, state: Arc<DaemonState>) -> Result<(), DaemonError> {
+    // Authorization before any request byte is read. Fail closed:
+    // a platform that won't disclose the peer credential gets
+    // refused, not trusted.
+    let authorized = match stream.peer_cred() {
+        Ok(cred) => peer_authorized(cred.uid()),
+        Err(_) => false,
+    };
+    let (reader, mut writer) = stream.into_split();
+
+    let response = if !authorized {
+        IpcResponse::Error {
             protocol_version: IPC_PROTOCOL_VERSION.into(),
-            message: format!("decode: {e}"),
-        },
+            message: "unauthorized peer".into(),
+        }
+    } else {
+        let mut buf = BufReader::new(reader);
+        let mut line = String::new();
+        buf.read_line(&mut line)
+            .await
+            .map_err(|e| DaemonError::Io(format!("read line: {e}")))?;
+        match IpcRequest::from_line(&line) {
+            Ok(req) => dispatch(req, &state).await,
+            Err(e) => IpcResponse::Error {
+                protocol_version: IPC_PROTOCOL_VERSION.into(),
+                message: format!("decode: {e}"),
+            },
+        }
     };
     let mut out = response.to_line();
     out.push('\n');
@@ -365,6 +417,40 @@ mod tests {
                 .await;
         }
         assert_eq!(daemon.state().recent_audit.lock().await.len(), 256);
+    }
+
+    #[tokio::test]
+    async fn bound_socket_mode_excludes_group_and_other() {
+        // RED for NIST_AGENT-2026-05-31-003: the IPC socket must
+        // not be world/group-connectable. Pre-fix, bind() left
+        // the socket at the umask default (~0755) so any local
+        // user could read audit summaries / queue depth.
+        let (_tmp, mut daemon) = fixture_daemon();
+        let path = daemon.bind().expect("bind");
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let mode = std::fs::metadata(&path).unwrap().permissions().mode();
+            assert_eq!(
+                mode & 0o077,
+                0,
+                "IPC socket is group/world-accessible (mode {:o}); must be 0600",
+                mode
+            );
+        }
+    }
+
+    #[test]
+    fn peer_gate_refuses_foreign_uid() {
+        // NIST_AGENT-2026-05-31-003: connections from any uid
+        // other than the daemon's own (or root) are refused.
+        let me = process_euid();
+        assert!(peer_authorized(me), "daemon's own uid must be authorized");
+        assert!(peer_authorized(0), "root must be authorized");
+        assert!(
+            !peer_authorized(me.wrapping_add(1)),
+            "a foreign uid must be refused"
+        );
     }
 
     #[tokio::test]

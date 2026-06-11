@@ -21,10 +21,13 @@ pub struct Action {
     /// Args, JSON-encoded for surface display; the harness
     /// deserializes per-capsule WIT at execution time.
     pub args_json: String,
-    /// SHA-256 of the canonical CBOR encoding of {capsule,
-    /// function, args}. The HITL gate signs this hash; the audit
-    /// chain records it. Determinism property: same inputs →
-    /// same hash, always.
+    /// SHA-256 over the deterministic length-prefixed encoding of
+    /// {capsule, function, args}: each field is prefixed with its
+    /// byte length as a u64 big-endian word and concatenated (see
+    /// [`Action::compute_hash`]). The HITL gate signs this hash;
+    /// the audit chain records it. Determinism property: same
+    /// inputs → same hash, always. Any layer recomputing this
+    /// hash MUST use the same length-prefixed scheme.
     pub proposal_hash: [u8; 32],
 }
 
@@ -48,8 +51,11 @@ pub struct ApprovalPayload {
 }
 
 impl Action {
-    /// Compute the canonical-CBOR proposal hash. Pure function —
-    /// the determinism property of RFC §5.4 hinges on this being
+    /// Compute the proposal hash: SHA-256 over each field
+    /// length-prefixed (u64 big-endian) and concatenated. NOT
+    /// CBOR — the prefix scheme below is the normative encoding
+    /// (NIST_AGENT-2026-05-31-010). Pure function — the
+    /// determinism property of RFC §5.4 hinges on this being
     /// byte-stable across builds.
     pub fn compute_hash(capsule: &str, function: &str, args_json: &str) -> [u8; 32] {
         use sha2::{Digest, Sha256};
@@ -111,5 +117,26 @@ mod tests {
         let a = Action::new("cap", "fn", r#"{"x":1}"#);
         let b = Action::new("cap", "fn", r#"{"x":2}"#);
         assert_ne!(a.proposal_hash, b.proposal_hash);
+    }
+
+    #[test]
+    fn compute_hash_doc_describes_the_real_scheme() {
+        // RED for NIST_AGENT-2026-05-31-010 (DOC-STALE): the doc
+        // claimed `proposal_hash` is a canonical-CBOR hash while
+        // the implementation hashes u64-BE length-prefixed raw
+        // bytes. Any layer recomputing the hash *from the doc*
+        // would mismatch. Pin: the stale claim must not reappear
+        // in this module. (Needle assembled so this test's own
+        // source can't satisfy it.)
+        let src = include_str!("action.rs");
+        let needle = ["canonical", "CBOR"].join(" ");
+        assert!(
+            !src.contains(&needle),
+            "doc must describe the length-prefixed scheme actually implemented"
+        );
+        assert!(
+            src.contains("length-prefix"),
+            "doc must name the length-prefixed scheme"
+        );
     }
 }
