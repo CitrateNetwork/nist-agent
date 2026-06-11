@@ -25,9 +25,17 @@ impl CitrateChainClient {
     /// Build for production use. `hex_key` is the operator's signing
     /// key for `anchor()` writes; `rpc_url` points at a Citrate node.
     /// Contract addresses come from `ContractAddresses::citrate_mainnet()`.
+    ///
+    /// Ship-guard (NIST_AGENT-2026-05-31-007): refuses to
+    /// construct while `citrate_mainnet()` still carries the
+    /// pre-deployment placeholder addresses — a pre-v1 build must
+    /// never anchor against nonexistent or squatted contracts.
     pub fn from_hex_key(hex_key: &str, rpc_url: impl Into<String>) -> Option<Self> {
         let rpc_url = rpc_url.into();
         let addresses = ContractAddresses::citrate_mainnet();
+        if addresses.is_placeholder() {
+            return None;
+        }
         let inner = AnchorRegistryClient::from_hex_key(
             hex_key,
             rpc_url.clone(),
@@ -42,13 +50,28 @@ impl CitrateChainClient {
     }
 
     /// Test fixture — no real RPC, but the trait shape is exercised.
-    /// Used by the trait-object smoke test in lib.rs.
+    /// Used by the trait-object smoke test in lib.rs. Constructed
+    /// directly (placeholder addresses are fine in tests; the
+    /// ship-guard only gates the production constructor).
     #[cfg(test)]
     pub(crate) fn new_for_tests() -> Self {
         // Deterministic 32-byte test key (also used in the runtime's
         // anchor.rs tests).
         let hex_key = "0x1feffc85883856c384f497cf057d38da863eb9b89c545e72fbfd35631eaf4a58";
-        Self::from_hex_key(hex_key, "http://localhost:8545").expect("test fixture key is valid")
+        let rpc_url = "http://localhost:8545".to_string();
+        let addresses = ContractAddresses::citrate_mainnet();
+        let inner = AnchorRegistryClient::from_hex_key(
+            hex_key,
+            rpc_url.clone(),
+            hex::encode(addresses.anchor_registry),
+            40204,
+        )
+        .expect("test fixture key is valid");
+        Self {
+            inner,
+            rpc_url,
+            addresses,
+        }
     }
 }
 
@@ -138,5 +161,20 @@ mod tests {
     #[test]
     fn refuses_invalid_hex_key() {
         assert!(CitrateChainClient::from_hex_key("not-hex", "http://localhost:8545").is_none());
+    }
+
+    #[test]
+    fn prod_ctor_refuses_placeholder_mainnet_addresses() {
+        // RED for NIST_AGENT-2026-05-31-007: `citrate_mainnet()`
+        // returns deterministic [0x01..0x05; 20] placeholders and
+        // the production constructor consumed them unconditionally
+        // — a pre-v1 build would anchor against nonexistent or
+        // squatted addresses. Ship-guard: the prod ctor must
+        // refuse until citrate-chain's real v1 addresses land.
+        let hex_key = "0x1feffc85883856c384f497cf057d38da863eb9b89c545e72fbfd35631eaf4a58";
+        assert!(
+            CitrateChainClient::from_hex_key(hex_key, "http://localhost:8545").is_none(),
+            "production constructor must refuse placeholder contract addresses"
+        );
     }
 }

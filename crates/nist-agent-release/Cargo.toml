@@ -18,3 +18,8 @@ tracing = { workspace = true }
 sha2 = { workspace = true }
 hex = { workspace = true }
 ed25519-dalek = { workspace = true }
+# Single source of truth for the egress-posture mapping
+# (NIST_AGENT-2026-05-31-009): the policy bundle's 3-state
+# posture is authoritative; this crate's 2-state runtime gate
+# derives from it via an exhaustive, test-pinned From impl.
+nist-agent-policy = { path = "../nist-agent-policy" }

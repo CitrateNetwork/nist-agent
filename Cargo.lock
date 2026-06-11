@@ -5028,6 +5028,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "clap",
+ "ed25519-dalek",
  "hex",
  "nist-agent-daemon",
  "nist-agent-doctor",
@@ -5049,8 +5050,13 @@ name = "nist-agent-daemon"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "ciborium",
  "citrate-agent-core",
+ "ed25519-dalek",
+ "hex",
+ "libc",
  "nist-agent-audit-sinks",
+ "nist-agent-policy",
  "nist-agent-prelude",
  "serde",
  "serde_json",
@@ -5200,6 +5206,7 @@ version = "0.1.0"
 dependencies = [
  "ed25519-dalek",
  "hex",
+ "nist-agent-policy",
  "nist-agent-prelude",
  "serde",
  "serde_json",

@@ -77,11 +77,33 @@ pub struct AuditSummary {
     pub message: String,
 }
 
+/// Fail-closed fallback wire line for a response that failed to
+/// serialize (NIST_AGENT-2026-05-31-008: the connection path must
+/// never panic). `serde_json::Value::to_string` cannot fail, so
+/// this line always decodes as a well-formed `Error` response.
+pub(crate) fn serialize_error_line(detail: &str) -> String {
+    serde_json::json!({
+        "kind": "error",
+        "protocol_version": IPC_PROTOCOL_VERSION,
+        "message": format!("response serialize failed: {detail}"),
+    })
+    .to_string()
+}
+
 impl IpcRequest {
     /// Encode for the wire (one line, no trailing newline).
+    /// Serializing this enum can't fail in practice; if it ever
+    /// does, emit a line the daemon will refuse rather than
+    /// panicking on the connection path (HYG-UNWRAP,
+    /// NIST_AGENT-2026-05-31-008).
     pub fn to_line(&self) -> String {
-        // unwrap: serializing our own enum can't fail
-        serde_json::to_string(self).expect("ipc request serialize")
+        serde_json::to_string(self).unwrap_or_else(|e| {
+            serde_json::json!({
+                "kind": "unserializable-request",
+                "error": e.to_string(),
+            })
+            .to_string()
+        })
     }
 
     /// Decode from a single wire line.
@@ -91,8 +113,11 @@ impl IpcRequest {
 }
 
 impl IpcResponse {
+    /// Encode for the wire. Never panics: a serialization failure
+    /// degrades to [`serialize_error_line`], which decodes as an
+    /// `Error` response.
     pub fn to_line(&self) -> String {
-        serde_json::to_string(self).expect("ipc response serialize")
+        serde_json::to_string(self).unwrap_or_else(|e| serialize_error_line(&e.to_string()))
     }
     pub fn from_line(s: &str) -> Result<Self, serde_json::Error> {
         serde_json::from_str(s.trim())
@@ -168,5 +193,33 @@ mod tests {
     fn unknown_kind_returns_serde_error() {
         let bad = r#"{"kind":"not-a-request"}"#;
         assert!(IpcRequest::from_line(bad).is_err());
+    }
+
+    #[test]
+    fn wire_encoding_has_no_panic_path() {
+        // RED for NIST_AGENT-2026-05-31-008: `to_line` used a
+        // panic-on-error unwrap on the per-connection path. The
+        // wire encoders must degrade to a decodable error line,
+        // never panic. Source pin: no expect-on-serialize left in
+        // this module. (Needle is assembled so this test's own
+        // source can't satisfy it.)
+        let src = include_str!("ipc.rs");
+        let needle = [".exp", "ect("].concat();
+        assert!(
+            !src.contains(&needle),
+            "ipc.rs must not panic-on-error in wire encoding (HYG-UNWRAP)"
+        );
+    }
+
+    #[test]
+    fn response_serialize_fallback_decodes_as_error() {
+        // The fail-closed fallback line emitted when response
+        // serialization fails must itself decode as a valid
+        // Error response so clients aren't handed garbage.
+        let line = serialize_error_line("fixture failure");
+        match IpcResponse::from_line(&line).unwrap() {
+            IpcResponse::Error { message, .. } => assert!(message.contains("fixture failure")),
+            other => panic!("expected Error, got {other:?}"),
+        }
     }
 }

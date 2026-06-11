@@ -5,13 +5,17 @@
 //! C++ toolchain). Operators on an air-gap host enable the
 //! feature, build once with the toolchain warm, and ship.
 //!
-//! The SI-7 hash check on the GGUF file runs *before* this
-//! module loads anything — `EmbeddedLlamaCpp::load_verified()`
-//! takes a pre-verified path so the verification gate cannot
-//! be skipped from inside this module. The verifier itself
-//! lives in [`crate::hash::verify_sha256`] and in
-//! `nist-agent-release::ModelIntegrity`; callers MUST run one
-//! of those before calling [`load_verified`].
+//! The SI-7 hash check on the GGUF runs *before* this module
+//! loads anything. To close the check-to-use race
+//! (NIST_AGENT-2026-05-31-002: hash over one read, llama.cpp
+//! re-opens the path), the loader never re-opens the operator-
+//! supplied path: [`EmbeddedLlamaCpp::load_verified_bytes`]
+//! stages the exact verified bytes into a private 0700 tempdir
+//! and llama.cpp opens that staged copy. A swap of the original
+//! path after verification cannot reach inference. The verifier
+//! itself lives in [`crate::hash::verify_sha256`] and in
+//! `nist-agent-release::ModelIntegrity`; callers MUST run one of
+//! those over the same bytes they pass in.
 
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -28,6 +32,12 @@ use crate::{ModelBackend, ModelError, TokenStream};
 pub struct EmbeddedLlamaCpp {
     id: String,
     model_path: PathBuf,
+    // Private staging dir holding the verified GGUF copy. Held
+    // for the backend's lifetime so the staged file survives the
+    // lazy first-inference load; removed on drop. The dir is
+    // 0700 + the copy 0400, so no co-tenant swap can land between
+    // hash check and llama.cpp's open (SI-7 TOCTOU fix).
+    _verified_stage: tempfile::TempDir,
     // The actual llama-cpp-2 handle is constructed lazily on
     // first inference so the doctor's "model resolves" check
     // doesn't pay the cost of loading the GGUF. Wrapped in
@@ -54,30 +64,76 @@ impl std::fmt::Debug for EmbeddedLlamaCpp {
 }
 
 impl EmbeddedLlamaCpp {
-    /// Construct from a *hash-verified* GGUF path. The caller
+    /// Construct from *hash-verified* GGUF bytes. The caller
     /// (CLI / harness) MUST have run the SI-7 hash check
-    /// (`ModelIntegrity::verify_gguf` or `verify_sha256`) before
-    /// invoking this. This module does not re-verify; the
-    /// contract is documented at the type level.
-    pub fn load_verified(path: impl Into<PathBuf>) -> Result<Self, ModelError> {
-        let path = path.into();
-        if !path.exists() {
-            return Err(ModelError::InvalidConfig {
-                reason: format!("embedded GGUF path does not exist: {}", path.display()),
-            });
+    /// (`ModelIntegrity::verify_gguf` or `verify_sha256`) over
+    /// `verified_bytes` — these exact bytes, not a separate read
+    /// of the same path — before invoking this. The bytes are
+    /// staged into a private 0700 tempdir owned by this backend;
+    /// llama.cpp opens the staged copy, so a swap of `source`
+    /// after verification cannot reach inference (closes the
+    /// NIST_AGENT-2026-05-31-002 check-to-use race).
+    pub fn load_verified_bytes(
+        verified_bytes: &[u8],
+        source: impl Into<PathBuf>,
+    ) -> Result<Self, ModelError> {
+        let source = source.into();
+        let file_name = source
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("unknown.gguf")
+            .to_string();
+        let stage = tempfile::Builder::new()
+            .prefix("nist-agent-si7-")
+            .tempdir()
+            .map_err(|e| ModelError::InvalidConfig {
+                reason: format!("create SI-7 staging dir: {e}"),
+            })?;
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            std::fs::set_permissions(stage.path(), std::fs::Permissions::from_mode(0o700))
+                .map_err(|e| ModelError::InvalidConfig {
+                    reason: format!("chmod SI-7 staging dir: {e}"),
+                })?;
         }
-        let id = format!(
-            "embedded:{}",
-            path.file_name()
-                .and_then(|n| n.to_str())
-                .unwrap_or("unknown.gguf")
-        );
+        let staged_path = stage.path().join(&file_name);
+        std::fs::write(&staged_path, verified_bytes).map_err(|e| ModelError::InvalidConfig {
+            reason: format!("stage verified GGUF {}: {e}", staged_path.display()),
+        })?;
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            std::fs::set_permissions(&staged_path, std::fs::Permissions::from_mode(0o400))
+                .map_err(|e| ModelError::InvalidConfig {
+                    reason: format!("chmod staged GGUF: {e}"),
+                })?;
+        }
         Ok(Self {
-            id,
-            model_path: path,
+            id: format!("embedded:{file_name}"),
+            model_path: staged_path,
+            _verified_stage: stage,
             #[cfg(feature = "feat-model-llamacpp")]
             inner: tokio::sync::Mutex::new(None),
         })
+    }
+
+    /// Construct from a *hash-verified* GGUF path. Reads the file
+    /// exactly once and delegates to [`Self::load_verified_bytes`]
+    /// — the loader never re-opens `path`, so post-read swaps of
+    /// the operator path cannot reach inference. Callers that
+    /// already hold the verified bytes (the SI-7 gate flow) MUST
+    /// use `load_verified_bytes` directly so the hashed bytes and
+    /// the loaded bytes are the same buffer.
+    pub fn load_verified(path: impl Into<PathBuf>) -> Result<Self, ModelError> {
+        let path = path.into();
+        let bytes = std::fs::read(&path).map_err(|e| ModelError::InvalidConfig {
+            reason: format!(
+                "embedded GGUF path does not exist or is unreadable: {}: {e}",
+                path.display()
+            ),
+        })?;
+        Self::load_verified_bytes(&bytes, &path)
     }
 
     pub fn model_path(&self) -> &Path {
@@ -233,7 +289,60 @@ mod tests {
         let f = NamedTempFile::new().unwrap();
         let b = EmbeddedLlamaCpp::load_verified(f.path()).unwrap();
         assert!(b.id().starts_with("embedded:"));
-        assert_eq!(b.model_path(), f.path());
+        // model_path is the private staged copy, never the
+        // operator-supplied path (SI-7 TOCTOU fix); same file
+        // name, different (0700-staged) directory.
+        assert_ne!(b.model_path(), f.path());
+        assert_eq!(b.model_path().file_name(), f.path().file_name());
+    }
+
+    #[test]
+    fn load_verified_bytes_binds_hashed_bytes_to_loaded_bytes() {
+        // The bytes the SI-7 gate hashed are byte-for-byte the
+        // bytes at the loader-visible path.
+        let dir = tempfile::tempdir().unwrap();
+        let p = dir.path().join("model.gguf");
+        std::fs::write(&p, b"ORIGINAL").unwrap();
+        let verified = std::fs::read(&p).unwrap();
+        let backend = EmbeddedLlamaCpp::load_verified_bytes(&verified, &p).unwrap();
+        assert_eq!(std::fs::read(backend.model_path()).unwrap(), verified);
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let dir_mode = std::fs::metadata(backend.model_path().parent().unwrap())
+                .unwrap()
+                .permissions()
+                .mode();
+            assert_eq!(dir_mode & 0o077, 0, "staging dir must be private (0700)");
+        }
+    }
+
+    #[test]
+    fn si7_swap_after_verify_cannot_change_loaded_bytes() {
+        // RED for NIST_AGENT-2026-05-31-002 (HIGH, SI-7 TOCTOU):
+        // the gate hashed one read of the GGUF, then handed the
+        // PATH to a loader that re-opened it — so a swap in the
+        // check-to-use window reached llama.cpp with SI-7
+        // "passing". Pin: whatever path the loader will open must
+        // carry exactly the verified bytes, even after the
+        // operator-supplied path is swapped post-verification.
+        let dir = tempfile::tempdir().unwrap();
+        let p = dir.path().join("model.gguf");
+        std::fs::write(&p, b"GOOD MODEL BYTES").unwrap();
+
+        // The SI-7 flow: read once, hash those bytes (elided —
+        // any caller-side check), then construct the backend.
+        let verified = std::fs::read(&p).unwrap();
+        let backend = EmbeddedLlamaCpp::load_verified(&p).unwrap();
+
+        // Attacker swaps the file inside the race window.
+        std::fs::write(&p, b"EVIL MODEL BYTES").unwrap();
+
+        let loaded = std::fs::read(backend.model_path()).unwrap();
+        assert_eq!(
+            loaded, verified,
+            "loader-visible bytes must be the verified bytes, not the swapped file"
+        );
     }
 
     #[cfg(not(feature = "feat-model-llamacpp"))]

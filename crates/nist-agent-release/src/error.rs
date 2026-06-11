@@ -61,6 +61,15 @@ pub enum ReleaseError {
     #[error("egress activation directive: invalid SecurityOfficer signature")]
     EgressDirectiveInvalid,
 
+    /// An egress directive whose nonce is not strictly greater
+    /// than the last consumed nonce was presented — a captured
+    /// directive is being replayed. The harness keeps egress
+    /// disabled (NIST_AGENT-2026-05-31-004 replay binding).
+    #[error(
+        "egress directive replayed: nonce {nonce} not greater than last consumed {last_consumed}"
+    )]
+    EgressDirectiveReplayed { nonce: u64, last_consumed: u64 },
+
     /// Hex decode error on a manifest sha256 field. Distinct
     /// from `ManifestDecode` because operators sometimes
     /// hand-edit hashes; this points them at the offending

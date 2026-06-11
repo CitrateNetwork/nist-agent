@@ -37,6 +37,7 @@ tempfile = "3.10"
 
 [dev-dependencies]
 tempfile = "3.10"
+ed25519-dalek = { workspace = true }
 
 [features]
 default = []

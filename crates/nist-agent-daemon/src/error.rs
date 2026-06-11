@@ -36,4 +36,12 @@ pub enum DaemonError {
     /// rule-6 requires availability over strict-best-effort).
     #[error("anchor write: {0}")]
     AnchorWrite(String),
+
+    /// The configured PolicyBundle failed to read, verify against
+    /// the SecurityOfficer trust root, or activate. The daemon
+    /// refuses to start (fail-closed) rather than booting without
+    /// the operator's signed policy
+    /// (NIST_AGENT-2026-05-31-001).
+    #[error("policy bundle rejected: {0}")]
+    PolicyRejected(String),
 }
