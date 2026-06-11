@@ -57,7 +57,29 @@ def main(argv=None) -> int:
     ap.add_argument("--git-rev", required=True)
     ap.add_argument("--staging", required=True, type=Path)
     ap.add_argument("--out", required=True, type=Path)
+    ap.add_argument(
+        "--expect",
+        action="append",
+        default=[],
+        metavar="PATH=SHA256",
+        help=(
+            "require the staged file at PATH (relative to --staging) to "
+            "hash to SHA256 (hex, optional 0x prefix); repeatable. Used "
+            "by the release workflow to bind the manifest to the "
+            "reproducibility-gate hash — a mismatch or missing file "
+            "aborts before any manifest is written (FUA-NIST-AGENT-01)."
+        ),
+    )
     args = ap.parse_args(argv)
+
+    expected: dict[str, str] = {}
+    for spec in args.expect:
+        path_part, sep, sha_part = spec.partition("=")
+        sha_norm = sha_part.lower().removeprefix("0x")
+        if not sep or not path_part or len(sha_norm) != 64:
+            print(f"bad --expect (want PATH=SHA256-hex): {spec}", file=sys.stderr)
+            return 2
+        expected[path_part] = sha_norm
 
     staging: Path = args.staging.resolve()
     if not staging.is_dir():
@@ -92,6 +114,23 @@ def main(argv=None) -> int:
 
     # Stable sort by path so the manifest is reproducible.
     entries.sort(key=lambda e: e[0])
+
+    # Hash binding: every --expect must name a staged file whose
+    # sha256 matches exactly. Fail BEFORE writing any manifest so a
+    # binary that drifted from the reproducibility gate can never be
+    # carried by a signed manifest (FUA-NIST-AGENT-01).
+    by_path = {path: sha for path, _kind, sha in entries}
+    for path, want in sorted(expected.items()):
+        got = by_path.get(path)
+        if got is None:
+            print(f"--expect {path}: file not present in staging dir", file=sys.stderr)
+            return 3
+        if got != want:
+            print(
+                f"--expect {path}: hash mismatch (staged sha256 {got}, expected {want})",
+                file=sys.stderr,
+            )
+            return 3
 
     lines = []
     lines.append(f'version = "{args.version}"')
