@@ -2,15 +2,39 @@
 #
 # Phases:
 #   1. Build the hermetic builder image (Dockerfile.builder).
-#   2. Build the workspace + `citrate-agent` bin inside the image.
-#   3. Run `cargo test --workspace` + clippy + fmt as a release gate.
-#   4. Produce per-artifact sha256s + SBOM (CycloneDX).
+#   2. Two-machine reproducibility gate: build the `citrate-agent`
+#      bin with `--locked` on two distinct runners; assert byte
+#      equality. Machine A's binary is uploaded as THE release
+#      artifact — nothing downstream rebuilds it.
+#   3. Run `cargo test --workspace --locked` + clippy + fmt as a
+#      release gate, download the gated binary, and re-verify its
+#      sha256 against both machine hashes before staging.
+#   4. Produce per-artifact sha256s + SBOM (CycloneDX, via the
+#      cargo-cyclonedx pre-cached in the builder image — no
+#      release-time network install).
 #   5. Sign the release manifest with a soft Ed25519 key from
 #      the `RELEASE_SIGNING_KEY_HEX` repo secret. The HSM swap-
 #      in path is documented at docs/audit/HSM_SEAM.md; this
-#      workflow's signer step is the *seam*.
+#      workflow's signer step is the *seam*. The manifest builder
+#      is passed the gate hash (`--expect`) and refuses to write
+#      a manifest for a binary that doesn't match it.
 #   6. Upload the signed bundle + manifest + SBOM to the GitHub
 #      release.
+#
+# Supply-chain invariants (SECREM-02 WP 7.3, FUA-NIST-AGENT-01..03;
+# pinned by crates/nist-agent-release/tests/release_pipeline_tripwires.rs):
+#   - Every cargo build/test/clippy/run here carries `--locked`: a
+#     stale Cargo.lock fails the release instead of re-resolving.
+#   - The shipped binary IS the reproducibility-gated binary (same
+#     workflow artifact, hash-compared in the publish job).
+#   - GitHub SSH host keys are pinned literally from the Meta API
+#     (https://api.github.com/meta); StrictHostKeyChecking yes.
+#     If GitHub rotates host keys, this fails closed — update the
+#     pins from the Meta API over TLS, never from ssh-keyscan.
+#   - `cargo audit` blocks the release (no continue-on-error);
+#     accepted advisories go in audit config ignores, not soft-fail.
+#   - No release-time `cargo install`: tools are pre-cached in
+#     Dockerfile.builder.
 #
 # Soft-key signing in this workflow produces a bundle marked
 # "pre-release / not for production" until the HSM swap-in
@@ -36,6 +60,9 @@ jobs:
   # `dist-reproducible-builds.feature`'s scenario "same source
   # on two clean machines yields the same artifact" — drift
   # fails the workflow before any sign / upload step runs.
+  # Machine A additionally uploads the binary itself: that file
+  # (not a later rebuild) is what the build job stages, signs,
+  # and ships, after re-verifying its hash against A and B.
   repro-matrix:
     name: reproducible build (machine ${{ matrix.machine }})
     runs-on: ubuntu-latest
@@ -50,13 +77,23 @@ jobs:
       # via SSH host aliases pinned in .cargo/config.toml. This step
       # writes the deploy keys + the matching ~/.ssh/config so cargo's
       # `git-fetch-with-cli` resolves them. Same shape as ci.yml.
+      #
+      # Host keys are GitHub's published values (Meta API,
+      # https://api.github.com/meta → ssh_keys), pinned literally —
+      # no ssh-keyscan TOFU (FUA-NIST-AGENT-02). StrictHostKeyChecking
+      # is `yes`: an unexpected host key fails the release closed.
       - name: Configure SSH deploy keys for federation deps
         env:
           AGENT_RUNTIME_DEPLOY_KEY: ${{ secrets.AGENT_RUNTIME_DEPLOY_KEY }}
           CHAIN_DEPLOY_KEY: ${{ secrets.CHAIN_DEPLOY_KEY }}
         run: |
           mkdir -p ~/.ssh && chmod 700 ~/.ssh
-          ssh-keyscan github.com >> ~/.ssh/known_hosts
+          cat > ~/.ssh/known_hosts <<'KNOWNHOSTS'
+          github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl
+          github.com ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBEmKSENjQEezOmxkZMy7opKgwFB9nkt5YRrYMjNuG5N87uRgg6CLrbo5wAdT/y6v0mKV0U2w0WZ2YB/++Tpockg=
+          github.com ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCj7ndNxQowgcQnjshcLrqPEiiphnt+VTTvDP6mHBL9j1aNUkY4Ue1gvwnGLVlOhGeYrnZaMgRK6+PKCUXaDbC7qtbW8gIkhL7aGCsOr/C56SJMy/BCZfxd1nWzAOxSDPgVsmerOBYfNqltV9/hWCqBywINIR+5dIg6JTJ72pcEpEjcYgXkE2YEFXV1JHnsKgbLWNlhScqb2UmyRkQyytRLtL+38TGxkxCflmO+5Z8CSSNY7GidjMIZ7Q4zMjA2n1nGrlTDkzwDCsw+wqFPGQA179cnfGWOWRVruj16z6XyvxvjJwbz0wQZ75XK5tKSb7FNyeIEs4TT4jk+S4dhPeAUC5y+bDYirYgM4GC7uEnztnZyaVWQ7B381AK4Qdrwt51ZqExKbQpTUNn+EjqoTwvqNj4kqx5QUCI0ThS/YkOxJCXmPUWZbhjpCg56i+2aB6CmK2JGhn57K5mj0MNdBXA4/WnwH6XoPWJzK5Nyu2zB3nAZp+S5hpQs+p1vN1/wsjk=
+          KNOWNHOSTS
+          chmod 600 ~/.ssh/known_hosts
           umask 077
           printf '%s\n' "$AGENT_RUNTIME_DEPLOY_KEY" > ~/.ssh/citrate-agent-runtime-readonly
           chmod 600 ~/.ssh/citrate-agent-runtime-readonly
@@ -68,13 +105,13 @@ jobs:
               User git
               IdentityFile ~/.ssh/citrate-agent-runtime-readonly
               IdentitiesOnly yes
-              StrictHostKeyChecking accept-new
+              StrictHostKeyChecking yes
           Host github-citrate-chain
               HostName github.com
               User git
               IdentityFile ~/.ssh/citrate-chain-readonly
               IdentitiesOnly yes
-              StrictHostKeyChecking accept-new
+              StrictHostKeyChecking yes
           SSHEOF
           chmod 600 ~/.ssh/config
 
@@ -82,23 +119,20 @@ jobs:
         run: docker build -f Dockerfile.builder -t nist-agent-builder .
 
       - name: build citrate-agent bin (default features)
-        # Bind-mount the runner's ~/.ssh as a read-only /host-ssh
-        # then copy + chown to /root/.ssh inside the container.
-        # SSH refuses configs not owned by the current user, so a
-        # straight bind-mount of ~/.ssh -> /root/.ssh fails with
-        # "Bad owner or permissions on /root/.ssh/config" because
-        # the bind-mount preserves the runner uid (1001).
+        # Bind-mount the runner's ~/.ssh as a read-only /host-ssh;
+        # the image ENTRYPOINT (scripts/release/docker-entrypoint.sh)
+        # copies + chowns it to /root/.ssh, because SSH refuses
+        # configs not owned by the current user and a straight
+        # bind-mount preserves the runner uid (1001). One source of
+        # truth — the inline copy this step used to carry was
+        # redundant with the entrypoint (HYG-DUP, 2026-06-09
+        # follow-up audit).
         run: |
           docker run --rm \
             -v "$PWD":/work -w /work \
             -v "$HOME/.ssh":/host-ssh:ro \
             nist-agent-builder \
-            bash -c '
-              mkdir -p /root/.ssh && cp -L /host-ssh/* /root/.ssh/ &&
-              chown -R root:root /root/.ssh &&
-              chmod 700 /root/.ssh && chmod 600 /root/.ssh/* &&
-              cargo build --release --bin citrate-agent --locked
-            '
+            cargo build --release --bin citrate-agent --locked
 
       - name: hash binary
         run: |
@@ -110,6 +144,18 @@ jobs:
         with:
           name: hash-machine-${{ matrix.machine }}
           path: citrate-agent.sha256.machine-${{ matrix.machine }}.txt
+
+      # Machine A's binary is the release artifact. The build job
+      # downloads exactly this file, re-verifies its sha256 against
+      # both machine hashes, and stages it — no third build exists
+      # to drift from the gate (FUA-NIST-AGENT-01).
+      - name: upload gated binary (machine A is the shipped artifact)
+        if: matrix.machine == 'A'
+        uses: actions/upload-artifact@v4
+        with:
+          name: bin-machine-A
+          path: target/release/citrate-agent
+          if-no-files-found: error
 
   repro-compare:
     name: assert byte-reproducibility
@@ -137,7 +183,7 @@ jobs:
           echo "two-machine reproducibility: OK ($sha_a)"
 
   build:
-    name: build, test, sign
+    name: gate, test, sign
     runs-on: ubuntu-latest
     needs: repro-compare
     permissions:
@@ -150,13 +196,21 @@ jobs:
         with:
           fetch-depth: 0  # full history for git rev recording
 
+      # Same pinned-host-key shape as the repro-matrix job above
+      # (FUA-NIST-AGENT-02): literal Meta-API host keys, strict
+      # checking, no keyscan.
       - name: Configure SSH deploy keys for federation deps
         env:
           AGENT_RUNTIME_DEPLOY_KEY: ${{ secrets.AGENT_RUNTIME_DEPLOY_KEY }}
           CHAIN_DEPLOY_KEY: ${{ secrets.CHAIN_DEPLOY_KEY }}
         run: |
           mkdir -p ~/.ssh && chmod 700 ~/.ssh
-          ssh-keyscan github.com >> ~/.ssh/known_hosts
+          cat > ~/.ssh/known_hosts <<'KNOWNHOSTS'
+          github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl
+          github.com ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBEmKSENjQEezOmxkZMy7opKgwFB9nkt5YRrYMjNuG5N87uRgg6CLrbo5wAdT/y6v0mKV0U2w0WZ2YB/++Tpockg=
+          github.com ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCj7ndNxQowgcQnjshcLrqPEiiphnt+VTTvDP6mHBL9j1aNUkY4Ue1gvwnGLVlOhGeYrnZaMgRK6+PKCUXaDbC7qtbW8gIkhL7aGCsOr/C56SJMy/BCZfxd1nWzAOxSDPgVsmerOBYfNqltV9/hWCqBywINIR+5dIg6JTJ72pcEpEjcYgXkE2YEFXV1JHnsKgbLWNlhScqb2UmyRkQyytRLtL+38TGxkxCflmO+5Z8CSSNY7GidjMIZ7Q4zMjA2n1nGrlTDkzwDCsw+wqFPGQA179cnfGWOWRVruj16z6XyvxvjJwbz0wQZ75XK5tKSb7FNyeIEs4TT4jk+S4dhPeAUC5y+bDYirYgM4GC7uEnztnZyaVWQ7B381AK4Qdrwt51ZqExKbQpTUNn+EjqoTwvqNj4kqx5QUCI0ThS/YkOxJCXmPUWZbhjpCg56i+2aB6CmK2JGhn57K5mj0MNdBXA4/WnwH6XoPWJzK5Nyu2zB3nAZp+S5hpQs+p1vN1/wsjk=
+          KNOWNHOSTS
+          chmod 600 ~/.ssh/known_hosts
           umask 077
           printf '%s\n' "$AGENT_RUNTIME_DEPLOY_KEY" > ~/.ssh/citrate-agent-runtime-readonly
           chmod 600 ~/.ssh/citrate-agent-runtime-readonly
@@ -168,13 +222,13 @@ jobs:
               User git
               IdentityFile ~/.ssh/citrate-agent-runtime-readonly
               IdentitiesOnly yes
-              StrictHostKeyChecking accept-new
+              StrictHostKeyChecking yes
           Host github-citrate-chain
               HostName github.com
               User git
               IdentityFile ~/.ssh/citrate-chain-readonly
               IdentitiesOnly yes
-              StrictHostKeyChecking accept-new
+              StrictHostKeyChecking yes
           SSHEOF
           chmod 600 ~/.ssh/config
 
@@ -202,49 +256,72 @@ jobs:
             nist-agent-builder:${{ steps.tag.outputs.tag }} \
             bash -lc '
               cargo fmt --all -- --check &&
-              cargo clippy --workspace --all-targets -- -D warnings &&
-              cargo test --workspace --release
+              cargo clippy --workspace --all-targets --locked -- -D warnings &&
+              cargo test --workspace --release --locked
             '
 
-      - name: build citrate-agent binary
+      # The shipped binary is the reproducibility-gated machine-A
+      # artifact — downloaded, never rebuilt (FUA-NIST-AGENT-01).
+      - name: download reproducibility-gated binary
+        uses: actions/download-artifact@v4
+        with:
+          name: bin-machine-A
+          path: gated-bin
+
+      - name: download machine hashes
+        uses: actions/download-artifact@v4
+        with:
+          pattern: hash-machine-*
+          merge-multiple: true
+          path: .
+
+      - name: verify shipped binary equals the reproducibility gate
+        id: gate
         run: |
-          # Default features only — embedded inference + UI are
-          # operator opt-ins, not the default release shape.
-          docker run --rm \
-            -v "$PWD":/work -w /work \
-            -v "$HOME/.ssh":/host-ssh:ro \
-            nist-agent-builder:${{ steps.tag.outputs.tag }} \
-            cargo build --release --bin citrate-agent
+          sha_a=$(awk '{print $1}' citrate-agent.sha256.machine-A.txt)
+          sha_b=$(awk '{print $1}' citrate-agent.sha256.machine-B.txt)
+          sha_bin=$(sha256sum gated-bin/citrate-agent | awk '{print $1}')
+          echo "machine A:   $sha_a"
+          echo "machine B:   $sha_b"
+          echo "shipped bin: $sha_bin"
+          if [ "$sha_a" != "$sha_b" ] || [ "$sha_bin" != "$sha_a" ]; then
+            echo "::error ::shipped binary does not match the two-machine reproducibility gate (A=$sha_a B=$sha_b shipped=$sha_bin)"
+            exit 1
+          fi
+          echo "gated_sha256=$sha_bin" >> "$GITHUB_OUTPUT"
+          echo "shipped binary == gated binary: OK ($sha_bin)"
 
       - name: stage release bundle
         run: |
           mkdir -p release-staging/bin release-staging/sbom release-staging/runbooks
-          cp target/release/citrate-agent release-staging/bin/
+          cp gated-bin/citrate-agent release-staging/bin/
           chmod +x release-staging/bin/citrate-agent
           for f in docs/compliance/*/RUNBOOK.md; do
             o="release-staging/runbooks/$(basename $(dirname $f)).RUNBOOK.md"
             cp "$f" "$o"
           done
 
-      - name: cargo-audit baseline
-        continue-on-error: true   # advisories don't block tagged releases; report only
+      # Blocking (FUA-NIST-AGENT-03): a known RUSTSEC advisory fails
+      # the tagged release. Accepting an advisory is an explicit,
+      # reviewed `[advisories] ignore` entry — never a soft-fail step.
+      - name: cargo-audit gate
         run: |
           docker run --rm \
             -v "$PWD":/work -w /work \
             -v "$HOME/.ssh":/host-ssh:ro \
             nist-agent-builder:${{ steps.tag.outputs.tag }} \
             cargo audit > release-staging/sbom/cargo-audit.txt
+          cat release-staging/sbom/cargo-audit.txt
 
       - name: SBOM (CycloneDX)
+        # cargo-cyclonedx is pre-cached in Dockerfile.builder — no
+        # release-time network install (FUA-NIST-AGENT-03).
         run: |
           docker run --rm \
             -v "$PWD":/work -w /work \
             -v "$HOME/.ssh":/host-ssh:ro \
             nist-agent-builder:${{ steps.tag.outputs.tag }} \
-            bash -lc '
-              cargo install --locked cargo-cyclonedx --version 0.5.7 &&
-              cargo cyclonedx --format json --override-filename sbom
-            '
+            cargo cyclonedx --format json --override-filename sbom
           # cargo-cyclonedx 0.5.7 emits one sbom.json per workspace crate
           # under each crate dir; consolidate to release-staging/sbom/
           # with crate-name prefix.
@@ -257,11 +334,16 @@ jobs:
 
       - name: hash artifacts + build release.manifest.toml
         id: manifest
+        # --expect binds the manifest to the reproducibility gate:
+        # build_manifest.py refuses to write a manifest whose staged
+        # binary hashes differently from the gated hash
+        # (FUA-NIST-AGENT-01).
         run: |
           python3 scripts/release/build_manifest.py \
             --version "${{ steps.tag.outputs.tag }}" \
             --git-rev "${{ steps.tag.outputs.git_rev }}" \
             --staging release-staging \
+            --expect "bin/citrate-agent=${{ steps.gate.outputs.gated_sha256 }}" \
             --out release-staging/release.manifest.toml
           cat release-staging/release.manifest.toml | head -40
 
@@ -278,7 +360,7 @@ jobs:
             -v "$HOME/.ssh":/host-ssh:ro \
             -e RELEASE_SIGNING_KEY_HEX \
             nist-agent-builder:${{ steps.tag.outputs.tag }} \
-            cargo run --release --quiet \
+            cargo run --release --quiet --locked \
               --manifest-path scripts/release/Cargo.toml \
               --bin sign-manifest -- \
               --input release-staging/release.manifest.toml \
@@ -305,6 +387,11 @@ jobs:
             - `nist-agent-${{ steps.tag.outputs.tag }}.tar.gz` — bundle (bin + runbooks + SBOM + manifest)
             - `nist-agent-${{ steps.tag.outputs.tag }}.tar.gz.sha256` — outer hash
             - `release.manifest.toml` (inside the bundle) — per-artifact sha256 + detached signature
+
+            Reproducibility: the shipped `bin/citrate-agent` is the
+            two-machine gate's machine-A artifact, hash-verified against
+            both machines before staging; its sha256 is bound into the
+            signed manifest.
 
             Signing posture: **${{ secrets.RELEASE_SIGNING_KEY_HEX != '' && 'soft-key (pre-production)' || 'UNSIGNED (set RELEASE_SIGNING_KEY_HEX secret)' }}**.
             See `docs/audit/HSM_SEAM.md` for the production HSM signing path.

@@ -51,10 +51,12 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
         --component rustfmt --component clippy
 ENV PATH=/root/.cargo/bin:$PATH
 
-# Pre-cache cargo-audit + cargo-deny so air-gap rebuilds don't
-# need network for the standard release-time checks.
+# Pre-cache cargo-audit + cargo-deny + cargo-cyclonedx so the
+# release pipeline performs no network tool install — the SBOM
+# step runs entirely from this image (FUA-NIST-AGENT-03).
 RUN cargo install cargo-audit --locked --version 0.22.1 \
- && cargo install cargo-deny --locked --version 0.19.6
+ && cargo install cargo-deny --locked --version 0.19.6 \
+ && cargo install cargo-cyclonedx --locked --version 0.5.7
 
 # Default workdir; the GHA workflow bind-mounts the repo here.
 WORKDIR /work
