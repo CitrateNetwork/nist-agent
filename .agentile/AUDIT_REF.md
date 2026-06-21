@@ -33,3 +33,31 @@ central finding.
 
 - Phase-1 mapping complete; see `per-repo/nist-agent/MAP.md` for the mapped surface and
   the high-risk areas queued for Phase-2 vuln-hunting.
+
+## Subsequent audit — Federation-Wide Audit 2026-06-20 (chunk FWA-C9)
+
+This repo was re-audited under the **federation-wide audit 2026-06-20**, chunk
+**FWA-C9** (Agent runtime & WASM sandbox), at SHA `5d683dc` on
+`docs/partner-eval`.
+
+- Audit root: `citrate-security/audits/2026-06-20-federation-wide-audit/`
+- Chunk report: `.../per-chunk/FWA-C9/REPORT.md` (+ `findings.json`,
+  `evidence/test-runs.txt`)
+- Central deferrals ledger: `.../DEFERRALS.md`
+- Standard: Agentile-Audit Standard **v0.2**
+
+### Findings touching this repo
+
+- **FWA-C9-01 (Medium)** — PolicyBundle verified but never enforced at
+  `dispatch()`. **DEFERRED-WITH-OWNER** (re-confirmed by enforcement-surface
+  determination at HEAD: no gateable action surface exists). Local remediation
+  record + tripwire-in-waiting:
+  `.agentile/audits/2026-06-21-fwa-remediation/REMEDIATION_LOG.md`.
+- (FWA-C9-02 Low + OBS-1/2 are scoped to `citrate-agent-runtime`, not this repo.)
+
+### Carry-forward dispositions confirmed
+
+- NIST_AGENT-001 *load/verify* half: **RESOLVED** fail-closed
+  (`crates/nist-agent-daemon/src/policy.rs`, `tests/policy_enforcement.rs`).
+- NIST_AGENT-002 SI-7 TOCTOU: **RESOLVED / NOT REPRODUCED** at HEAD.
+- Prior "nist-agent 0/10": **STALE** — workspace builds, policy suites pass.
