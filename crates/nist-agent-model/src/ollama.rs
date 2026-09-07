@@ -64,13 +64,23 @@ impl OllamaClient {
     /// `host` is intentionally a `&str` (not `IpAddr`) so the
     /// operator's policy bundle can configure non-localhost setups
     /// (e.g. a sidecar deployment with Ollama on a sibling pod).
-    /// Air-gap discipline is enforced by the policy bundle, not by
-    /// this constructor.
+    ///
+    /// NA2-B-030 / NA2-B-024: air-gap discipline is now enforced
+    /// HERE, at the socket. `egress_allowed` is the operator's
+    /// policy (`ModelConfig.egress_allowed`); a discovery against a
+    /// **non-loopback** host is refused before any DNS lookup or
+    /// connect when egress is not permitted. Loopback discovery is
+    /// always allowed — contacting a local daemon is not egress
+    /// under RFC G1.
     pub async fn try_discover(
         host: &str,
         port: u16,
         model_name: &str,
+        egress_allowed: bool,
     ) -> Result<Option<Self>, ModelError> {
+        if !egress_allowed && !host_is_loopback(host) {
+            return Err(ModelError::EgressForbidden("ollama"));
+        }
         let base_url = format!("http://{host}:{port}");
         let client = reqwest::Client::builder()
             .timeout(Duration::from_millis(DISCOVERY_TIMEOUT_MS))
@@ -111,10 +121,24 @@ impl OllamaClient {
         }))
     }
 
-    /// Default-port localhost discovery shortcut.
+    /// Default-port localhost discovery shortcut. Loopback, so it is
+    /// never gated by egress policy.
     pub async fn try_localhost(model_name: &str) -> Result<Option<Self>, ModelError> {
-        Self::try_discover("127.0.0.1", DEFAULT_OLLAMA_PORT, model_name).await
+        Self::try_discover("127.0.0.1", DEFAULT_OLLAMA_PORT, model_name, false).await
     }
+}
+
+/// Whether `host` names the local machine (loopback). Contacting a
+/// local daemon is not network egress under RFC G1.
+fn host_is_loopback(host: &str) -> bool {
+    let h = host.trim();
+    if h.eq_ignore_ascii_case("localhost") {
+        return true;
+    }
+    if let Ok(ip) = h.parse::<std::net::IpAddr>() {
+        return ip.is_loopback();
+    }
+    false
 }
 
 #[async_trait]
@@ -242,9 +266,38 @@ mod tests {
     async fn try_discover_unreachable_host_returns_none() {
         // 192.0.2.x is TEST-NET-1 per RFC 5737 — guaranteed
         // unreachable. Confirms the connect-refused path is mapped
-        // to Ok(None), not Err.
-        let result = OllamaClient::try_discover("192.0.2.1", 11434, "any-model").await;
+        // to Ok(None), not Err. Egress explicitly allowed so the
+        // gate below is not what produces the None.
+        let result = OllamaClient::try_discover("192.0.2.1", 11434, "any-model", true).await;
         assert!(result.is_ok());
         assert!(result.unwrap().is_none());
+    }
+
+    #[tokio::test]
+    async fn try_discover_refuses_non_loopback_when_egress_disabled() {
+        // NA2-B-030 tripwire: a non-loopback endpoint must be refused
+        // BEFORE any socket is opened when egress is not allowed.
+        let result =
+            OllamaClient::try_discover("192.0.2.1", 11434, "any-model", false).await;
+        assert!(matches!(result, Err(ModelError::EgressForbidden("ollama"))), "got {result:?}");
+    }
+
+    #[tokio::test]
+    async fn try_discover_permits_loopback_even_when_egress_disabled() {
+        // Loopback is not egress: discovery is allowed and returns
+        // Ok(None) when no local Ollama serves the model.
+        let result =
+            OllamaClient::try_discover("127.0.0.1", DEFAULT_OLLAMA_PORT, "no-such-model-x9", false)
+                .await;
+        assert!(result.is_ok(), "loopback discovery must not be egress-gated: {result:?}");
+    }
+
+    #[test]
+    fn host_is_loopback_classifies_correctly() {
+        assert!(host_is_loopback("127.0.0.1"));
+        assert!(host_is_loopback("::1"));
+        assert!(host_is_loopback("localhost"));
+        assert!(!host_is_loopback("192.0.2.1"));
+        assert!(!host_is_loopback("ollama.internal"));
     }
 }

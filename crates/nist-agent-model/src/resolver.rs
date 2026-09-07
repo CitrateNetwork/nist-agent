@@ -97,7 +97,12 @@ impl Model {
 
         for (host, port) in &cfg.ollama_endpoints {
             tried.push(format!("ollama://{host}:{port}"));
-            match OllamaClient::try_discover(host, *port, &cfg.model_name).await {
+            // NA2-B-024/030: the operator's egress policy now gates
+            // the socket. A non-loopback endpoint is refused when
+            // egress is not allowed, so `egress_allowed` is no longer
+            // a dead field.
+            match OllamaClient::try_discover(host, *port, &cfg.model_name, cfg.egress_allowed).await
+            {
                 Ok(Some(c)) => return Ok(ResolvedModel::Ollama(c)),
                 Ok(None) => continue,
                 Err(e) => {
