@@ -68,6 +68,15 @@ impl std::fmt::Debug for PairingToken {
     }
 }
 
+impl Drop for PairingToken {
+    fn drop(&mut self) {
+        // NA2-B-007: wipe the bearer token from memory on drop rather
+        // than leaving it recoverable in a freed heap allocation.
+        use zeroize::Zeroize;
+        self.0.zeroize();
+    }
+}
+
 impl Serialize for PairingToken {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         // Never emit the plaintext token into a persisted record.

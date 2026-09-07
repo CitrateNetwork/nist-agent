@@ -67,6 +67,7 @@ futures = "0.3"
 tokio-stream = "0.1"
 url = "2.5"
 ciborium = "0.2"  # canonical CBOR for PolicyBundle (RFC 8949 §4.2.1)
-ed25519-dalek = { version = "2.1", features = ["std"] }  # SecurityOfficer signature verification on bundles
+ed25519-dalek = { version = "2.1", features = ["std", "zeroize"] }  # SecurityOfficer signature verification on bundles; zeroize wipes signing keys on drop
+zeroize = { version = "1.8", features = ["zeroize_derive"] }  # NA2-B-007: wipe transient private-key + token buffers on drop
 toml = "0.8"  # release.manifest.toml decode (S-12 dist-bundled-gemma4 / dist-signed-releases scenarios)
 clap = { version = "4.5", features = ["derive", "env"] }  # nist-agent-cli — S-12b operator bin
