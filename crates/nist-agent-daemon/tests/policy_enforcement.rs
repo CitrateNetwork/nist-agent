@@ -27,7 +27,16 @@ fn signing_key(seed: u8) -> SigningKey {
 /// `citrate-agent wizard` emits and operators point
 /// `policy.bundle_path` at.
 fn write_signed_bundle(path: &Path, sk: &SigningKey) {
-    let bundle = PolicyBundle::minimal_template();
+    // NA2-B-028: `minimal_template()` is not directly deployable
+    // (placeholder DIDs + infinite expiry), so a bundle the daemon
+    // will actually accept must rotate the DIDs and carry a finite
+    // validity window.
+    let mut bundle = PolicyBundle::minimal_template();
+    for (role, dids) in bundle.role_assignments.iter_mut() {
+        *dids = vec![format!("did:citrate:{:?}:0xabc", role)];
+    }
+    bundle.not_before = 0;
+    bundle.expires_at = 4_102_444_800; // 2100-01-01, finite
     let canonical = bundle.encode_canonical().expect("encode");
     let signature = sk.sign(&canonical).to_bytes().to_vec();
     let raw = RawSignedBundle {

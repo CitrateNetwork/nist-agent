@@ -18,9 +18,16 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader};
 use tokio::net::{UnixListener, UnixStream};
 use tokio::sync::Mutex;
+
+/// Hard cap on a single IPC request line (NA2-B-010). The four
+/// request shapes are tiny (`Status`, `QueueDepth`, `RecentAudit`,
+/// `Shutdown`); 8 KiB is generous. Bounds the per-connection
+/// allocation so a same-uid peer streaming bytes without a newline
+/// cannot exhaust the daemon's memory.
+const MAX_REQUEST_BYTES: u64 = 8 * 1024;
 
 use nist_agent_policy::PolicyBundle;
 
@@ -96,10 +103,41 @@ impl Daemon {
     /// file). The caller's `--smoke` path stops here.
     pub fn bind(&mut self) -> Result<PathBuf, DaemonError> {
         let path = self.state.config.daemon.ipc_socket_path.clone();
-        // Stale-socket clean-up.
-        if path.exists() {
-            std::fs::remove_file(&path)
-                .map_err(|e| DaemonError::Filesystem(format!("remove stale socket: {e}")))?;
+        // Stale-socket clean-up (NA2-B-010): only unlink a path that
+        // is actually a socket owned by this uid. Unconditionally
+        // removing whatever exists at the configured path is a
+        // delete primitive at the daemon's privilege if the operator
+        // (or an attacker) points `ipc_socket_path` at a real file or
+        // a symlink. Use `symlink_metadata` so a symlink is inspected
+        // as a symlink, never followed.
+        match std::fs::symlink_metadata(&path) {
+            Ok(meta) => {
+                #[cfg(unix)]
+                {
+                    use std::os::unix::fs::{FileTypeExt, MetadataExt};
+                    if !meta.file_type().is_socket() {
+                        return Err(DaemonError::Filesystem(format!(
+                            "refusing to remove {}: exists and is not a socket",
+                            path.display()
+                        )));
+                    }
+                    if meta.uid() != process_euid() {
+                        return Err(DaemonError::Filesystem(format!(
+                            "refusing to remove {}: socket not owned by this uid",
+                            path.display()
+                        )));
+                    }
+                }
+                std::fs::remove_file(&path)
+                    .map_err(|e| DaemonError::Filesystem(format!("remove stale socket: {e}")))?;
+            }
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+            Err(e) => {
+                return Err(DaemonError::Filesystem(format!(
+                    "stat socket path {}: {e}",
+                    path.display()
+                )))
+            }
         }
         if let Some(parent) = path.parent() {
             if !parent.as_os_str().is_empty() {
@@ -246,17 +284,28 @@ async fn handle_connection(stream: UnixStream, state: Arc<DaemonState>) -> Resul
             message: "unauthorized peer".into(),
         }
     } else {
-        let mut buf = BufReader::new(reader);
+        // NA2-B-010: bound the read so an unbounded, newline-free
+        // stream cannot grow the allocation without limit. `take`
+        // caps the bytes read; if we hit the cap without a newline
+        // the request is over-length and refused.
+        let mut buf = BufReader::new(reader.take(MAX_REQUEST_BYTES));
         let mut line = String::new();
         buf.read_line(&mut line)
             .await
             .map_err(|e| DaemonError::Io(format!("read line: {e}")))?;
-        match IpcRequest::from_line(&line) {
-            Ok(req) => dispatch(req, &state).await,
-            Err(e) => IpcResponse::Error {
+        if line.len() as u64 >= MAX_REQUEST_BYTES && !line.ends_with('\n') {
+            IpcResponse::Error {
                 protocol_version: IPC_PROTOCOL_VERSION.into(),
-                message: format!("decode: {e}"),
-            },
+                message: format!("request exceeds {MAX_REQUEST_BYTES}-byte limit"),
+            }
+        } else {
+            match IpcRequest::from_line(&line) {
+                Ok(req) => dispatch(req, &state).await,
+                Err(e) => IpcResponse::Error {
+                    protocol_version: IPC_PROTOCOL_VERSION.into(),
+                    message: format!("decode: {e}"),
+                },
+            }
         }
     };
     let mut out = response.to_line();
@@ -328,6 +377,25 @@ mod tests {
         let cfg = DaemonConfig::fixture(tmp.path());
         let mut d2 = Daemon::prepare(cfg).unwrap();
         d2.bind().expect("re-bind after stale");
+    }
+
+    #[tokio::test]
+    async fn bind_refuses_to_unlink_a_non_socket_path() {
+        // NA2-B-010: a regular file at the configured socket path
+        // must NOT be silently deleted by bind().
+        let tmp = tempfile::tempdir().unwrap();
+        let mut cfg = DaemonConfig::fixture(tmp.path());
+        let victim = tmp.path().join("not-a-socket");
+        std::fs::write(&victim, b"important operator file").unwrap();
+        cfg.daemon.ipc_socket_path = victim.clone();
+        let mut daemon = Daemon::prepare(cfg).expect("prepare");
+        let err = daemon.bind().expect_err("must refuse a non-socket path");
+        assert!(matches!(err, DaemonError::Filesystem(_)), "got {err:?}");
+        // The file must be untouched.
+        assert_eq!(
+            std::fs::read(&victim).unwrap(),
+            b"important operator file"
+        );
     }
 
     #[tokio::test]
