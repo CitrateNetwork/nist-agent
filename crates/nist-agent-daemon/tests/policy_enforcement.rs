@@ -144,6 +144,62 @@ fn daemon_with_valid_bundle_starts_and_holds_policy() {
     assert_eq!(bundle.bundle_name, "minimal-template");
 }
 
+/// Write a deployable signed bundle carrying an explicit overlay set.
+fn write_signed_bundle_with_overlays(
+    path: &Path,
+    sk: &SigningKey,
+    overlays: nist_agent_policy::ActiveOverlays,
+) {
+    let mut bundle = PolicyBundle::minimal_template();
+    for (role, dids) in bundle.role_assignments.iter_mut() {
+        *dids = vec![format!("did:citrate:{:?}:0xabc", role)];
+    }
+    bundle.not_before = 0;
+    bundle.expires_at = 4_102_444_800;
+    bundle.overlays = overlays;
+    let canonical = bundle.encode_canonical().expect("encode");
+    let signature = sk.sign(&canonical).to_bytes().to_vec();
+    let raw = RawSignedBundle {
+        bundle_cbor: canonical,
+        signature,
+    };
+    let json = serde_json::json!({
+        "bundle_cbor_hex": hex::encode(&raw.bundle_cbor),
+        "signature_hex": hex::encode(&raw.signature),
+    });
+    std::fs::write(path, serde_json::to_vec_pretty(&json).expect("json")).expect("write bundle");
+}
+
+#[test]
+fn daemon_refuses_bundle_that_silently_drops_active_overlay() {
+    // NA2-B-004: the overlay ratchet is enforced across restarts.
+    // First start activates HIPAA; a second bundle that drops HIPAA
+    // without decommissioning it must refuse startup.
+    use nist_agent_policy::{ActiveOverlays, Overlay};
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let bundle_path = tmp.path().join("policy.json");
+    let sk = signing_key(7);
+    let pubkey_hex = hex::encode(sk.verifying_key().to_bytes());
+
+    let mut with_hipaa = ActiveOverlays::new_with_cmmc_baseline();
+    with_hipaa.add(Overlay::HipaaHitech);
+    write_signed_bundle_with_overlays(&bundle_path, &sk, with_hipaa);
+    let cfg = config_with_policy(tmp.path(), &bundle_path, &pubkey_hex);
+    Daemon::prepare(cfg).expect("first activation with HIPAA succeeds");
+
+    // Second bundle: CMMC baseline only (HIPAA silently dropped).
+    write_signed_bundle_with_overlays(
+        &bundle_path,
+        &sk,
+        ActiveOverlays::new_with_cmmc_baseline(),
+    );
+    let cfg2 = config_with_policy(tmp.path(), &bundle_path, &pubkey_hex);
+    assert!(
+        Daemon::prepare(cfg2).is_err(),
+        "dropping an active overlay without decommissioning must refuse startup"
+    );
+}
+
 #[test]
 fn daemon_without_bundle_path_starts_in_minimal_mode() {
     // The documented air-gap smoke posture: no bundle configured

@@ -193,6 +193,41 @@ impl PolicyBundle {
         }
         Ok(())
     }
+
+    /// Activate this bundle as a *replacement* for `prior`, enforcing
+    /// BOTH policy ratchets against the actually-persisted prior
+    /// state (NA2-B-004):
+    ///
+    /// - risk-tier non-de-escalation (RFC §5.2), using `prior`'s
+    ///   tier map rather than an empty map; and
+    /// - overlay non-regression (RFC §2.3): every overlay that was
+    ///   active under `prior` must still be active under `self`, or
+    ///   must appear in `self`'s `decommissioned` set (i.e. it went
+    ///   through the documented decommissioning workflow). A bundle
+    ///   that silently drops an active overlay is refused.
+    ///
+    /// Pass `None` for a first-load (no prior state persisted), in
+    /// which case this reduces to [`PolicyBundle::activate`] with an
+    /// empty prior-tier map.
+    pub fn activate_against(
+        &self,
+        now_unix_seconds: i64,
+        prior: Option<&PolicyBundle>,
+    ) -> Result<(), PolicyError> {
+        let empty = BTreeMap::new();
+        let prior_tiers = prior.map(|p| &p.risk_tier_map).unwrap_or(&empty);
+        self.activate(now_unix_seconds, prior_tiers)?;
+        if let Some(prior) = prior {
+            for overlay in prior.overlays.active() {
+                if !self.overlays.is_active(*overlay)
+                    && !self.overlays.decommissioned().contains(overlay)
+                {
+                    return Err(PolicyError::OverlayRemovalForbidden(*overlay));
+                }
+            }
+        }
+        Ok(())
+    }
 }
 
 /// A bundle as it travels on the wire: the canonical CBOR-encoded
@@ -338,6 +373,47 @@ mod tests {
             }
             other => panic!("expected TierDeEscalation, got {other:?}"),
         }
+    }
+
+    #[test]
+    fn activate_against_refuses_silent_overlay_drop() {
+        // NA2-B-004: a replacement bundle that drops a
+        // previously-active overlay without decommissioning it is
+        // refused when checked against the persisted prior state.
+        use crate::Overlay;
+        let mut prior = deployable_template();
+        prior.overlays.add(Overlay::HipaaHitech);
+
+        // next bundle drops HIPAA silently (not in active, not in
+        // decommissioned).
+        let next = deployable_template();
+        let err = next
+            .activate_against(0, Some(&prior))
+            .expect_err("silent overlay drop must be refused");
+        assert!(
+            matches!(err, PolicyError::OverlayRemovalForbidden(Overlay::HipaaHitech)),
+            "got {err:?}"
+        );
+
+        // A bundle that keeps HIPAA active is fine.
+        let mut keep = deployable_template();
+        keep.overlays.add(Overlay::HipaaHitech);
+        keep.activate_against(0, Some(&prior))
+            .expect("superset of prior overlays activates");
+    }
+
+    #[test]
+    fn activate_against_enforces_tier_ratchet_from_prior() {
+        // NA2-B-004: the tier ratchet now runs against the prior
+        // bundle's actual tier map, not an empty map.
+        let mut prior = deployable_template();
+        prior.risk_tier_map.insert("phi-export".into(), RiskTier::High);
+        let mut next = deployable_template();
+        next.risk_tier_map.insert("phi-export".into(), RiskTier::Low);
+        let err = next
+            .activate_against(0, Some(&prior))
+            .expect_err("tier de-escalation vs prior must be refused");
+        assert!(matches!(err, PolicyError::TierDeEscalation { .. }), "got {err:?}");
     }
 
     #[test]
