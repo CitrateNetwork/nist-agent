@@ -22,6 +22,14 @@ jobs:
   tlc:
     name: TLC verify all normative specs
     runs-on: ubuntu-latest
+    env:
+      # NA2-B-013: pinned tla2tools release tag + the SHA-256 of that
+      # exact artifact. Both feed the cache key and the checksum gate
+      # below, so a re-pin invalidates the cache. OWNER: confirm this
+      # digest matches the v1.8.0 release asset; update both together
+      # when bumping the tools version.
+      TLA_TOOLS_TAG: v1.8.0
+      TLA_TOOLS_SHA256: 936a262061c914694dfd669a543be24573c45d5aa0ff20a8b96b23d01e050e88
     steps:
       - uses: actions/checkout@v4
 
@@ -38,21 +46,23 @@ jobs:
           path: ~/.local/share/tla2tools.jar
           # Versioned by the tlaplus release tag we point at. Bump the
           # key when intentionally upgrading the tools binary.
-          key: tla2tools-v1.8.0
+          key: tla2tools-${{ env.TLA_TOOLS_TAG }}-${{ env.TLA_TOOLS_SHA256 }}
 
-      - name: Download tla2tools.jar
+      - name: Download + checksum-verify tla2tools.jar
         if: steps.cache-tla.outputs.cache-hit != 'true'
         run: |
+          set -euo pipefail
           mkdir -p ~/.local/share
           curl -fL \
-            https://github.com/tlaplus/tlaplus/releases/latest/download/tla2tools.jar \
+            "https://github.com/tlaplus/tlaplus/releases/download/${TLA_TOOLS_TAG}/tla2tools.jar" \
             -o ~/.local/share/tla2tools.jar
-          # Sanity: file should be a valid JAR > 1 MB. The official
-          # release artifact is ~2.2 MB as of 2026-05; bumping this
-          # threshold above the real size masks download corruption,
-          # bumping it below 1 MB stops catching truncated downloads.
+          # Sanity: valid JAR > 1 MB (catches truncated downloads).
           test "$(stat -c%s ~/.local/share/tla2tools.jar)" -gt 1000000
           file ~/.local/share/tla2tools.jar | grep -qE "(Java archive|Zip archive)"
+          # Integrity: the fetched bytes MUST equal the pinned digest.
+          # A mismatch fails the job — a changed or compromised jar can
+          # no longer silently redefine what the specs verify against.
+          echo "${TLA_TOOLS_SHA256}  ${HOME}/.local/share/tla2tools.jar" | sha256sum -c -
 
       - name: Verify every spec under .agentile/formal/specs/
         run: |
