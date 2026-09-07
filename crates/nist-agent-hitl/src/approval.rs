@@ -100,35 +100,36 @@ pub struct ApprovalQueueView {
 }
 
 impl ApprovalQueueView {
-    /// Construct from upstream `PendingView` records + a parallel
-    /// mapping of signature state.
+    /// Construct from upstream `PendingView` records + signature
+    /// state aligned **by position** (NA2-B-011).
     ///
-    /// `signatures` is `Vec<(call_id, current, still_required)>`.
-    /// Caller (the harness) sources these from its `ApprovalQueue`
-    /// internal state; this constructor just zips them.
+    /// `signatures[i]` is `(current, still_required)` for
+    /// `pendings[i]`; a shorter slice leaves later rows with empty
+    /// defaults. The previous implementation keyed the signature
+    /// lookup on `PendingView.name`, so two pending invocations of
+    /// the same capsule function collapsed onto one signature tuple
+    /// and each rendered the other's sign-off state — an approver
+    /// reviewing row 1 could sign row 2. Positional zip removes that
+    /// collision.
+    ///
+    /// `call_id` is made positionally unique (`"<name>#<index>"`) so
+    /// the UI can address each row distinctly within a snapshot.
+    /// Surfacing the real upstream `PendingEntry.call_id` (so an
+    /// action routes to the exact queued call across snapshots) still
+    /// needs an upstream change to `PendingView` — an OWNER / Rule-9
+    /// item.
     pub fn from_pending(
         pendings: &[PendingView],
-        signatures: &[(String, Vec<String>, Vec<String>)],
+        signatures: &[(Vec<String>, Vec<String>)],
     ) -> Self {
-        // Build a quick lookup so we don't make the harness
-        // pre-sort signatures into the same order as pendings.
-        // We key on PendingView.name because that's the closest
-        // thing to a stable id in the upstream type (call_id is
-        // internal to PendingEntry, not PendingView).
-        let sig_by_name: std::collections::HashMap<&str, (Vec<String>, Vec<String>)> = signatures
-            .iter()
-            .map(|(name, cur, req)| (name.as_str(), (cur.clone(), req.clone())))
-            .collect();
-
         let rows: Vec<ApprovalRow> = pendings
             .iter()
-            .map(|p| {
-                let (current_signatures, roles_still_required) = sig_by_name
-                    .get(p.name.as_str())
-                    .cloned()
-                    .unwrap_or_default();
+            .enumerate()
+            .map(|(i, p)| {
+                let (current_signatures, roles_still_required) =
+                    signatures.get(i).cloned().unwrap_or_default();
                 ApprovalRow {
-                    call_id: p.name.clone(),
+                    call_id: format!("{}#{i}", p.name),
                     call_display: p.name.clone(),
                     description: p.description.clone(),
                     severity: ApprovalRowSeverity::parse(&p.risk_level),
@@ -197,18 +198,16 @@ mod tests {
             pv("read_log", "low"),
             pv("anchor_root", "medium"),
         ];
+        // Signature state is aligned by position with `pendings`.
         let sigs = vec![
-            (
-                "redact_pii".into(),
-                vec!["Reviewer".into()],
-                vec!["ComplianceOfficer".into()],
-            ),
-            ("read_log".into(), vec![], vec!["Operator".into()]),
+            (vec!["Reviewer".into()], vec!["ComplianceOfficer".into()]),
+            (vec![], vec!["Operator".into()]),
         ];
         let v = ApprovalQueueView::from_pending(&pendings, &sigs);
         assert_eq!(v.rows.len(), 3);
         assert_eq!(v.pending_count, 3);
-        assert_eq!(v.rows[0].call_id, "redact_pii");
+        assert_eq!(v.rows[0].call_id, "redact_pii#0");
+        assert_eq!(v.rows[0].call_display, "redact_pii");
         assert_eq!(v.rows[0].current_signatures, vec!["Reviewer".to_string()]);
         assert_eq!(
             v.rows[0].roles_still_required,
@@ -216,6 +215,27 @@ mod tests {
         );
         // Row without signature info gets defaults (empty vecs).
         assert_eq!(v.rows[2].current_signatures, Vec::<String>::new());
+    }
+
+    #[test]
+    fn same_named_pendings_do_not_share_signature_state() {
+        // NA2-B-011 tripwire: two pending invocations of the same
+        // tool must carry their OWN signature state and distinct
+        // ids, not collapse onto one another.
+        let pendings = vec![pv("redact", "high"), pv("redact", "high")];
+        let sigs = vec![
+            (vec!["Reviewer".into()], vec![]),
+            (vec![], vec!["ComplianceOfficer".into()]),
+        ];
+        let v = ApprovalQueueView::from_pending(&pendings, &sigs);
+        assert_eq!(v.rows.len(), 2);
+        assert_ne!(v.rows[0].call_id, v.rows[1].call_id);
+        assert_eq!(v.rows[0].current_signatures, vec!["Reviewer".to_string()]);
+        assert_eq!(v.rows[1].current_signatures, Vec::<String>::new());
+        assert_eq!(
+            v.rows[1].roles_still_required,
+            vec!["ComplianceOfficer".to_string()]
+        );
     }
 
     #[test]
