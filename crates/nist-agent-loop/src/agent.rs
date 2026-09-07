@@ -123,6 +123,7 @@ impl Agent {
         &self,
         checkpoint_id: &str,
         payload: ApprovalPayload,
+        now_unix: i64,
     ) -> Result<AgentOutcome, AgentLoopError> {
         let cp = self
             .checkpoint_store
@@ -149,6 +150,28 @@ impl Agent {
             return Ok(AgentOutcome::Rejected {
                 checkpoint_id: checkpoint_id.to_string(),
             });
+        }
+
+        // NA2-B-003: an approved payload that carries no signatures
+        // proves no authority. The loop does not verify the
+        // signatures' cryptographic content (that is HITL's job), but
+        // it refuses to complete on the bare `approved` bool — a
+        // fail-open resume is not permitted. The checkpoint is left
+        // in place so a properly-signed resume can still arrive.
+        if payload.signatures.is_empty() {
+            return Err(AgentLoopError::ApprovalUnauthorized(format!(
+                "checkpoint {checkpoint_id}: approved payload carries no signatures"
+            )));
+        }
+
+        // NA2-B-008: a captured approval is not valid forever. Refuse
+        // a resume once the approval's validity window has passed, so
+        // a replayed decision cannot drive a later identical proposal.
+        if now_unix > payload.expires_at_unix {
+            return Err(AgentLoopError::ApprovalExpired(format!(
+                "checkpoint {checkpoint_id}: approval expired at {} (now {now_unix})",
+                payload.expires_at_unix
+            )));
         }
 
         // Approved path — the harness's capsule dispatcher executes
@@ -180,16 +203,20 @@ impl Agent {
 fn parse_action(output: &str) -> Option<Action> {
     const OPEN: &str = "<<ACTION ";
     const CLOSE: &str = ">>";
+    // NA2-B-012: reject on *any* count of the open marker other than
+    // exactly one, across the whole output — not just a second marker
+    // appearing after the first close. This catches a marker nested
+    // before the first close (`<<ACTION a.b <<ACTION c.d {}>>`),
+    // which the old after-the-close check missed and which yielded a
+    // corrupted args field. More than one control marker in a single
+    // completion is treated as model misbehaviour / injection.
+    if output.matches(OPEN).count() != 1 {
+        return None;
+    }
     let start = output.find(OPEN)?;
     let body_start = start + OPEN.len();
     let close_rel = output[body_start..].find(CLOSE)?;
     let body = &output[body_start..body_start + close_rel];
-
-    // Confirm no second `<<ACTION ` marker after the close.
-    let after = &output[body_start + close_rel + CLOSE.len()..];
-    if after.contains(OPEN) {
-        return None;
-    }
 
     // body = "capsule.function args_json"
     // Allow whitespace between function and args_json.
@@ -308,12 +335,63 @@ mod tests {
         let payload = ApprovalPayload {
             proposal_hash: hash,
             approved: true,
-            signatures: vec![],
+            signatures: vec![1, 2, 3], // non-empty: HITL collected a signature
+            expires_at_unix: 1_000,
         };
-        match agent.resume(&id, payload).await.expect("resume") {
+        match agent.resume(&id, payload, 500).await.expect("resume") {
             AgentOutcome::Completed { checkpoint_id, .. } => assert_eq!(checkpoint_id, id),
             other => panic!("expected Completed, got {other:?}"),
         }
+    }
+
+    #[tokio::test]
+    async fn resume_refuses_approved_payload_with_no_signatures() {
+        // NA2-B-003 tripwire: a bare `approved: true` with no
+        // signatures must NOT complete the action.
+        let agent = make_agent(r#"<<ACTION cap.fn {}>>"#);
+        let (id, hash) = match agent.step("go").await.expect("step") {
+            AgentOutcome::Pending {
+                checkpoint_id,
+                action,
+            } => (checkpoint_id, action.proposal_hash),
+            other => panic!("expected Pending, got {other:?}"),
+        };
+        let payload = ApprovalPayload {
+            proposal_hash: hash,
+            approved: true,
+            signatures: vec![], // attacker-forged, no real sign-off
+            expires_at_unix: i64::MAX,
+        };
+        let err = agent
+            .resume(&id, payload, 0)
+            .await
+            .expect_err("must refuse unsigned approval");
+        assert!(matches!(err, AgentLoopError::ApprovalUnauthorized(_)), "got {err:?}");
+    }
+
+    #[tokio::test]
+    async fn resume_refuses_expired_approval() {
+        // NA2-B-008 tripwire: a captured approval is not valid
+        // forever; resuming past its TTL is refused.
+        let agent = make_agent(r#"<<ACTION cap.fn {}>>"#);
+        let (id, hash) = match agent.step("go").await.expect("step") {
+            AgentOutcome::Pending {
+                checkpoint_id,
+                action,
+            } => (checkpoint_id, action.proposal_hash),
+            other => panic!("expected Pending, got {other:?}"),
+        };
+        let payload = ApprovalPayload {
+            proposal_hash: hash,
+            approved: true,
+            signatures: vec![9],
+            expires_at_unix: 100,
+        };
+        let err = agent
+            .resume(&id, payload, 101)
+            .await
+            .expect_err("must refuse expired approval");
+        assert!(matches!(err, AgentLoopError::ApprovalExpired(_)), "got {err:?}");
     }
 
     #[tokio::test]
@@ -335,8 +413,9 @@ mod tests {
             proposal_hash: hash,
             approved: false,
             signatures: vec![],
+            expires_at_unix: 0,
         };
-        match agent.resume(&id, payload).await.expect("resume") {
+        match agent.resume(&id, payload, 0).await.expect("resume") {
             AgentOutcome::Rejected { checkpoint_id } => assert_eq!(checkpoint_id, id),
             other => panic!("expected Rejected, got {other:?}"),
         }
@@ -355,9 +434,10 @@ mod tests {
         let payload = ApprovalPayload {
             proposal_hash: [0xff; 32],
             approved: true,
-            signatures: vec![],
+            signatures: vec![1],
+            expires_at_unix: i64::MAX,
         };
-        let err = agent.resume(&id, payload).await.expect_err("must error");
+        let err = agent.resume(&id, payload, 0).await.expect_err("must error");
         match err {
             AgentLoopError::ApprovalMismatch(msg) => {
                 assert!(msg.contains("proposal hash mismatch"))
@@ -394,6 +474,14 @@ mod tests {
     #[test]
     fn parse_action_returns_none_on_multiple_markers() {
         let out = "<<ACTION a.b {}>> and <<ACTION c.d {}>>";
+        assert!(parse_action(out).is_none());
+    }
+
+    #[test]
+    fn parse_action_returns_none_on_nested_marker() {
+        // NA2-B-012 tripwire: a marker nested before the first close
+        // must be rejected, not parsed into a corrupted args field.
+        let out = "<<ACTION a.b <<ACTION c.d {}>>";
         assert!(parse_action(out).is_none());
     }
 

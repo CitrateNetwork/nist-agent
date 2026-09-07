@@ -47,7 +47,17 @@ pub struct ApprovalPayload {
     /// Signatures collected by the surface. The HITL quorum check
     /// in citrate-agent-core's `ApprovalQueue` validates whether
     /// this set satisfies the action's required-roles multiset.
+    /// The loop does not verify their cryptographic content, but it
+    /// DOES refuse to resume an approved payload that carries none
+    /// (NA2-B-003) — a bare `approved: true` proves no authority.
     pub signatures: Vec<u8>, // opaque to the loop; HITL verifies
+    /// Unix-epoch seconds after which this approval is no longer
+    /// valid (NA2-B-008). Enforced in [`crate::agent::Agent::resume`]
+    /// against the caller-supplied `now`. Defaults to `0` (already
+    /// expired) so a payload that omits it fails closed rather than
+    /// being valid forever.
+    #[serde(default)]
+    pub expires_at_unix: i64,
 }
 
 impl Action {

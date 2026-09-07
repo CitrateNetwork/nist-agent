@@ -27,4 +27,16 @@ pub enum AgentLoopError {
     /// hard error; the harness MUST NOT proceed.
     #[error("approval mismatch: {0}")]
     ApprovalMismatch(String),
+
+    /// The approval carried no signatures (NA2-B-003). A bare
+    /// `approved: true` proves no authority; the loop refuses to
+    /// resume on it rather than fail open.
+    #[error("approval unauthorized: {0}")]
+    ApprovalUnauthorized(String),
+
+    /// The approval is past its validity window (NA2-B-008). A
+    /// captured approval is not valid forever; the loop refuses to
+    /// resume a stale/replayed decision.
+    #[error("approval expired: {0}")]
+    ApprovalExpired(String),
 }
