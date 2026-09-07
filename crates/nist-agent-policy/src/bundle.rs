@@ -21,6 +21,12 @@ use std::collections::BTreeMap;
 /// breaking way (additive fields use serde `#[serde(default)]`).
 pub const BUNDLE_VERSION: u32 = 1;
 
+/// DID prefix stamped into every role by [`PolicyBundle::minimal_template`].
+/// A deployable bundle MUST have rotated all of these to real
+/// identities; `activate` refuses any bundle that still carries one
+/// (NA2-B-028).
+pub const PLACEHOLDER_DID_PREFIX: &str = "did:placeholder:";
+
 /// The signed configuration. All fields are part of the canonical
 /// signature payload; ordering of map keys is enforced by ciborium's
 /// deterministic encoder.
@@ -120,14 +126,38 @@ impl PolicyBundle {
             )));
         }
         for role in Role::ALL {
-            let assigned = self
+            let count = self
                 .role_assignments
                 .get(role)
                 .map(|v| v.len())
                 .unwrap_or(0);
-            if assigned == 0 {
+            if count == 0 {
                 return Err(PolicyError::RoleUnassigned(*role));
             }
+        }
+        // NA2-B-028: refuse un-rotated placeholder identities. A
+        // bundle straight out of `minimal_template()` would otherwise
+        // satisfy the role-lattice check above with `did:placeholder:*`
+        // DIDs and report PASS on doctor. Checked after every role is
+        // confirmed non-empty so a truly unassigned role is reported
+        // as such first.
+        for role in Role::ALL {
+            if let Some(dids) = self.role_assignments.get(role) {
+                for did in dids {
+                    if did.starts_with(PLACEHOLDER_DID_PREFIX) {
+                        return Err(PolicyError::PlaceholderDidNotRotated {
+                            role: *role,
+                            did: did.clone(),
+                        });
+                    }
+                }
+            }
+        }
+        // NA2-B-028: a deployable bundle MUST carry a finite validity
+        // window. `expires_at == i64::MAX` (the template default)
+        // makes the RFC §10.2 expiry check unfalsifiable.
+        if self.expires_at == i64::MAX {
+            return Err(PolicyError::NoFiniteValidity);
         }
         if self.not_before > self.expires_at {
             return Err(PolicyError::Expired(format!(
@@ -158,6 +188,41 @@ impl PolicyBundle {
                         declared: *declared,
                         proposed: *proposed,
                     });
+                }
+            }
+        }
+        Ok(())
+    }
+
+    /// Activate this bundle as a *replacement* for `prior`, enforcing
+    /// BOTH policy ratchets against the actually-persisted prior
+    /// state (NA2-B-004):
+    ///
+    /// - risk-tier non-de-escalation (RFC §5.2), using `prior`'s
+    ///   tier map rather than an empty map; and
+    /// - overlay non-regression (RFC §2.3): every overlay that was
+    ///   active under `prior` must still be active under `self`, or
+    ///   must appear in `self`'s `decommissioned` set (i.e. it went
+    ///   through the documented decommissioning workflow). A bundle
+    ///   that silently drops an active overlay is refused.
+    ///
+    /// Pass `None` for a first-load (no prior state persisted), in
+    /// which case this reduces to [`PolicyBundle::activate`] with an
+    /// empty prior-tier map.
+    pub fn activate_against(
+        &self,
+        now_unix_seconds: i64,
+        prior: Option<&PolicyBundle>,
+    ) -> Result<(), PolicyError> {
+        let empty = BTreeMap::new();
+        let prior_tiers = prior.map(|p| &p.risk_tier_map).unwrap_or(&empty);
+        self.activate(now_unix_seconds, prior_tiers)?;
+        if let Some(prior) = prior {
+            for overlay in prior.overlays.active() {
+                if !self.overlays.is_active(*overlay)
+                    && !self.overlays.decommissioned().contains(overlay)
+                {
+                    return Err(PolicyError::OverlayRemovalForbidden(*overlay));
                 }
             }
         }
@@ -223,6 +288,43 @@ mod tests {
         SigningKey::from_bytes(&[7u8; 32])
     }
 
+    /// A bundle the operator could actually deploy: every
+    /// placeholder DID rotated to a concrete identity and a finite
+    /// validity window. `minimal_template()` is deliberately NOT
+    /// deployable (NA2-B-028); tests that exercise a *valid*
+    /// activation must start from this.
+    fn deployable_template() -> PolicyBundle {
+        let mut b = PolicyBundle::minimal_template();
+        for (role, dids) in b.role_assignments.iter_mut() {
+            *dids = vec![format!("did:citrate:{:?}:0xabc", role)];
+        }
+        b.not_before = 0;
+        b.expires_at = 4_102_444_800; // 2100-01-01, finite
+        b
+    }
+
+    #[test]
+    fn minimal_template_is_not_deployable() {
+        // NA2-B-028 tripwire: the template ships un-rotated
+        // placeholder DIDs and an infinite expiry, so it must NOT
+        // activate cleanly.
+        let b = PolicyBundle::minimal_template();
+        let err = b
+            .activate(0, &BTreeMap::new())
+            .expect_err("template must not be directly deployable");
+        assert!(
+            matches!(err, PolicyError::PlaceholderDidNotRotated { .. }),
+            "expected PlaceholderDidNotRotated, got {err:?}"
+        );
+        // And even with DIDs rotated, an infinite expiry is refused.
+        let mut b2 = deployable_template();
+        b2.expires_at = i64::MAX;
+        assert!(matches!(
+            b2.activate(0, &BTreeMap::new()),
+            Err(PolicyError::NoFiniteValidity)
+        ));
+    }
+
     #[test]
     fn minimal_template_round_trips_through_canonical_cbor() {
         let b = PolicyBundle::minimal_template();
@@ -252,7 +354,7 @@ mod tests {
 
     #[test]
     fn activate_refuses_de_escalation() {
-        let mut b = PolicyBundle::minimal_template();
+        let mut b = deployable_template();
         b.risk_tier_map.insert("cap1".into(), RiskTier::Low);
         let mut prior = BTreeMap::new();
         prior.insert("cap1".to_string(), RiskTier::High);
@@ -274,8 +376,49 @@ mod tests {
     }
 
     #[test]
+    fn activate_against_refuses_silent_overlay_drop() {
+        // NA2-B-004: a replacement bundle that drops a
+        // previously-active overlay without decommissioning it is
+        // refused when checked against the persisted prior state.
+        use crate::Overlay;
+        let mut prior = deployable_template();
+        prior.overlays.add(Overlay::HipaaHitech);
+
+        // next bundle drops HIPAA silently (not in active, not in
+        // decommissioned).
+        let next = deployable_template();
+        let err = next
+            .activate_against(0, Some(&prior))
+            .expect_err("silent overlay drop must be refused");
+        assert!(
+            matches!(err, PolicyError::OverlayRemovalForbidden(Overlay::HipaaHitech)),
+            "got {err:?}"
+        );
+
+        // A bundle that keeps HIPAA active is fine.
+        let mut keep = deployable_template();
+        keep.overlays.add(Overlay::HipaaHitech);
+        keep.activate_against(0, Some(&prior))
+            .expect("superset of prior overlays activates");
+    }
+
+    #[test]
+    fn activate_against_enforces_tier_ratchet_from_prior() {
+        // NA2-B-004: the tier ratchet now runs against the prior
+        // bundle's actual tier map, not an empty map.
+        let mut prior = deployable_template();
+        prior.risk_tier_map.insert("phi-export".into(), RiskTier::High);
+        let mut next = deployable_template();
+        next.risk_tier_map.insert("phi-export".into(), RiskTier::Low);
+        let err = next
+            .activate_against(0, Some(&prior))
+            .expect_err("tier de-escalation vs prior must be refused");
+        assert!(matches!(err, PolicyError::TierDeEscalation { .. }), "got {err:?}");
+    }
+
+    #[test]
     fn activate_permits_escalation_and_new_entries() {
-        let mut b = PolicyBundle::minimal_template();
+        let mut b = deployable_template();
         b.risk_tier_map.insert("cap1".into(), RiskTier::Critical); // escalation
         b.risk_tier_map.insert("cap-new".into(), RiskTier::Medium); // new entry
         let mut prior = BTreeMap::new();
@@ -285,7 +428,7 @@ mod tests {
 
     #[test]
     fn activate_refuses_bundle_outside_validity_window() {
-        let mut b = PolicyBundle::minimal_template();
+        let mut b = deployable_template();
         b.not_before = 100;
         b.expires_at = 200;
         assert!(matches!(

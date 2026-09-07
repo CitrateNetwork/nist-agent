@@ -21,6 +21,14 @@ pub enum MobilePairingError {
     #[error("device attestation not on allowlist: {chain_id}")]
     AttestationNotAllowlisted { chain_id: String },
 
+    /// The attestation envelope was not cryptographically verified
+    /// (NA2-B-005). The allowlist check confirms the *claimed* chain
+    /// id is permitted, but a device is only admitted once its
+    /// attestation chain actually verifies. A self-asserted chain id
+    /// with a degenerate or unverifiable envelope is refused.
+    #[error("device attestation failed verification: {reason}")]
+    AttestationUnverified { reason: String },
+
     /// A sign attempt arrived from a paired device but the active
     /// overlay set forbids mobile signing. RFC §5.6 — FedRAMP
     /// High deployments must refuse.
@@ -45,4 +53,17 @@ pub enum MobilePairingError {
     /// the daemon's outstanding token. Could be replay or expired.
     #[error("pairing token mismatch or expired")]
     PairingTokenMismatch,
+
+    /// The pairing's short-lived token window has elapsed
+    /// (NA2-B-006). The pairing must be re-initiated.
+    #[error("pairing token expired at {expires_at_unix} (now {now_unix})")]
+    PairingExpired {
+        expires_at_unix: i64,
+        now_unix: i64,
+    },
+
+    /// Too many failed token presentations; the pairing is
+    /// terminated to stop unlimited brute-force retries (NA2-B-006).
+    #[error("pairing terminated after {attempts} failed token attempts")]
+    PairingTooManyAttempts { attempts: u32 },
 }

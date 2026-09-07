@@ -95,15 +95,23 @@ fn default_nightly() -> String {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct PolicySection {
-    /// PolicyBundle CBOR file path. `None` boots the daemon in
-    /// minimal mode (no policy enforcement; useful for the air-
-    /// gap smoke test).
+    /// PolicyBundle CBOR file path. When omitted, the daemon boots
+    /// with NO policy bundle, trust root, or role lattice — which is
+    /// refused at `validate()` unless `allow_no_policy` is set
+    /// (NA2-B-002). A fail-open default is not permitted.
     #[serde(default)]
     pub bundle_path: Option<PathBuf>,
     /// SecurityOfficer trust-root public key (hex). Required
     /// when `bundle_path` is set.
     #[serde(default)]
     pub so_pubkey_hex: Option<String>,
+    /// Explicit opt-in to boot with no policy bundle (air-gap smoke
+    /// mode). Without this, a config that omits `bundle_path` is
+    /// refused — an operator can no longer silently run the harness
+    /// with every policy-dependent check unconfigured. The CLI sets
+    /// this from `--insecure-no-policy`.
+    #[serde(default)]
+    pub allow_no_policy: bool,
 }
 
 impl DaemonConfig {
@@ -146,6 +154,17 @@ impl DaemonConfig {
                 reason: format!("expected HH:MM 24h, got '{}'", self.anchor.nightly_at_iso),
             });
         }
+        // NA2-B-002: refuse a fail-open no-policy boot unless the
+        // operator explicitly opted in. Otherwise a config that
+        // simply omits `[policy]` would run with no trust root, no
+        // role lattice, and every policy-dependent check inert.
+        if self.policy.bundle_path.is_none() && !self.policy.allow_no_policy {
+            return Err(DaemonError::ConfigInvalid {
+                field: "policy.bundle_path".into(),
+                reason: "required unless [policy] allow_no_policy = true (--insecure-no-policy)"
+                    .into(),
+            });
+        }
         if self.policy.bundle_path.is_some() && self.policy.so_pubkey_hex.is_none() {
             return Err(DaemonError::ConfigInvalid {
                 field: "policy.so_pubkey_hex".into(),
@@ -168,7 +187,12 @@ impl DaemonConfig {
                 strategy: AnchorStrategy::None,
                 nightly_at_iso: "02:00".into(),
             },
-            policy: PolicySection::default(),
+            // The fixture / --smoke path is the legitimate air-gap
+            // no-policy mode, so it opts in explicitly (NA2-B-002).
+            policy: PolicySection {
+                allow_no_policy: true,
+                ..PolicySection::default()
+            },
         }
     }
 }
@@ -205,7 +229,11 @@ mod tests {
     }
 
     #[test]
-    fn minimal_toml_parses_with_defaults() {
+    fn minimal_toml_parses_but_is_refused_without_policy_optin() {
+        // NA2-B-002 (RC-8 inversion): a config that omits [policy]
+        // still PARSES with defaults, but must be REFUSED at
+        // validate() — booting with no policy is no longer the
+        // silent default.
         let s = r#"
         [daemon]
         audit_sink_path = "/var/lib/audit"
@@ -215,7 +243,28 @@ mod tests {
         assert_eq!(cfg.anchor.strategy, AnchorStrategy::Hybrid);
         assert_eq!(cfg.anchor.nightly_at_iso, "02:00");
         assert!(cfg.policy.bundle_path.is_none());
-        cfg.validate().expect("valid minimal config");
+        match cfg.validate() {
+            Err(DaemonError::ConfigInvalid { field, .. }) => {
+                assert_eq!(field, "policy.bundle_path")
+            }
+            other => panic!("expected ConfigInvalid(policy.bundle_path), got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn no_policy_boot_requires_explicit_optin() {
+        // The air-gap smoke mode is still reachable, but only with an
+        // explicit opt-in.
+        let s = r#"
+        [daemon]
+        audit_sink_path = "/var/lib/audit"
+        ipc_socket_path = "/run/daemon.sock"
+
+        [policy]
+        allow_no_policy = true
+        "#;
+        let cfg = DaemonConfig::from_toml(s).unwrap();
+        cfg.validate().expect("explicit no-policy opt-in is valid");
     }
 
     #[test]

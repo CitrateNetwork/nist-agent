@@ -33,15 +33,46 @@ pub struct ActiveOverlays {
 /// Proof token that a decommissioning workflow has been documented
 /// (RFC §2.3). In production this is signed by SecurityOfficer +
 /// ComplianceOfficer and points to a workflow file under
-/// `.agentile/sprints/active/`. The activation flow checks the
-/// token's existence; verifying its content is a different concern
-/// (RFC §6 audit trail).
+/// `.agentile/sprints/active/`.
+///
+/// The proof is only meaningful if it is *bound* to a concrete
+/// document: `remove_with_workflow` re-hashes the document the
+/// caller supplies and refuses removal unless the digest matches
+/// `workflow_sha256` (NA2-B-029). A default/zero token therefore
+/// no longer authorizes anything.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DecommissioningWorkflow {
     /// Sprint file path or URL where the workflow is documented.
     pub workflow_ref: String,
     /// SHA-256 of the workflow document at the time of activation.
     pub workflow_sha256: [u8; 32],
+}
+
+impl DecommissioningWorkflow {
+    /// Verify this proof against the actual bytes of the referenced
+    /// workflow document. Rejects an empty reference, an all-zero
+    /// digest, or a digest that does not match `document`.
+    pub fn verify(&self, document: &[u8]) -> Result<(), PolicyError> {
+        use sha2::{Digest, Sha256};
+        if self.workflow_ref.trim().is_empty() {
+            return Err(PolicyError::WorkflowProofInvalid(
+                "empty workflow_ref".into(),
+            ));
+        }
+        if self.workflow_sha256 == [0u8; 32] {
+            return Err(PolicyError::WorkflowProofInvalid(
+                "all-zero workflow_sha256".into(),
+            ));
+        }
+        let actual: [u8; 32] = Sha256::digest(document).into();
+        if actual != self.workflow_sha256 {
+            return Err(PolicyError::WorkflowProofInvalid(format!(
+                "document digest does not match workflow_sha256 for '{}'",
+                self.workflow_ref
+            )));
+        }
+        Ok(())
+    }
 }
 
 impl ActiveOverlays {
@@ -102,13 +133,17 @@ impl ActiveOverlays {
     pub fn remove_with_workflow(
         &mut self,
         overlay: Overlay,
-        _workflow: &DecommissioningWorkflow,
+        workflow: &DecommissioningWorkflow,
+        workflow_document: &[u8],
     ) -> Result<(), PolicyError> {
         // CMMC-L3 baseline is non-removable. RFC §2.1: baseline
         // applies to every deployment regardless.
         if overlay == Overlay::CmmcL3 {
             return Err(PolicyError::OverlayRemovalForbidden(overlay));
         }
+        // NA2-B-029: the decommissioning proof must actually bind to
+        // the workflow document. A default/zero token is refused.
+        workflow.verify(workflow_document)?;
         if !self.active.remove(&overlay) {
             // Not active — nothing to remove. Caller likely has a
             // stale bundle; treat as a no-op rather than error.
@@ -131,11 +166,38 @@ impl ActiveOverlays {
 mod tests {
     use super::*;
 
+    const WORKFLOW_DOC: &[u8] = b"overlay decommissioning workflow: HIPAA export complete";
+
     fn workflow() -> DecommissioningWorkflow {
+        use sha2::{Digest, Sha256};
         DecommissioningWorkflow {
             workflow_ref: ".agentile/sprints/active/overlay-decom-stub.md".into(),
-            workflow_sha256: [0xaa; 32],
+            workflow_sha256: Sha256::digest(WORKFLOW_DOC).into(),
         }
+    }
+
+    #[test]
+    fn remove_with_default_proof_is_refused() {
+        // NA2-B-029 tripwire: a zero/default proof token, or a
+        // document that does not hash to the recorded digest, must
+        // NOT authorize removal.
+        let mut s = ActiveOverlays::new_with_cmmc_baseline();
+        s.add(Overlay::Ferpa);
+        let zero = DecommissioningWorkflow {
+            workflow_ref: String::new(),
+            workflow_sha256: [0u8; 32],
+        };
+        assert!(matches!(
+            s.remove_with_workflow(Overlay::Ferpa, &zero, b"anything"),
+            Err(PolicyError::WorkflowProofInvalid(_))
+        ));
+        assert!(s.is_active(Overlay::Ferpa));
+        // Right token, wrong document: still refused.
+        assert!(matches!(
+            s.remove_with_workflow(Overlay::Ferpa, &workflow(), b"tampered document"),
+            Err(PolicyError::WorkflowProofInvalid(_))
+        ));
+        assert!(s.is_active(Overlay::Ferpa));
     }
 
     #[test]
@@ -158,7 +220,7 @@ mod tests {
     fn cmmc_l3_baseline_is_non_removable() {
         let mut s = ActiveOverlays::new_with_cmmc_baseline();
         let err = s
-            .remove_with_workflow(Overlay::CmmcL3, &workflow())
+            .remove_with_workflow(Overlay::CmmcL3, &workflow(), WORKFLOW_DOC)
             .expect_err("CMMC baseline must be non-removable");
         match err {
             PolicyError::OverlayRemovalForbidden(o) => assert_eq!(o, Overlay::CmmcL3),
@@ -186,7 +248,7 @@ mod tests {
         let mut s = ActiveOverlays::new_with_cmmc_baseline();
         s.add(Overlay::Ferpa);
         s.add(Overlay::HipaaHitech);
-        s.remove_with_workflow(Overlay::Ferpa, &workflow())
+        s.remove_with_workflow(Overlay::Ferpa, &workflow(), WORKFLOW_DOC)
             .expect("remove with workflow ok");
         assert!(!s.is_active(Overlay::Ferpa));
         assert!(s.decommissioned().contains(&Overlay::Ferpa));
@@ -201,7 +263,7 @@ mod tests {
         // Returning Ok lets the harness treat the bundle as already
         // converged rather than blocking on a stale bundle.
         let mut s = ActiveOverlays::new_with_cmmc_baseline();
-        s.remove_with_workflow(Overlay::Coppa, &workflow())
+        s.remove_with_workflow(Overlay::Coppa, &workflow(), WORKFLOW_DOC)
             .expect("removing inactive overlay is a no-op");
         assert!(!s.is_active(Overlay::Coppa));
         assert!(!s.decommissioned().contains(&Overlay::Coppa));
@@ -212,7 +274,7 @@ mod tests {
         // PolicyBundle CBOR round-trip pins the activation state.
         let mut s = ActiveOverlays::new_with_cmmc_baseline();
         s.add(Overlay::Ferpa);
-        s.remove_with_workflow(Overlay::Ferpa, &workflow())
+        s.remove_with_workflow(Overlay::Ferpa, &workflow(), WORKFLOW_DOC)
             .expect("remove");
         let json = serde_json::to_string(&s).expect("ser");
         let round: ActiveOverlays = serde_json::from_str(&json).expect("de");

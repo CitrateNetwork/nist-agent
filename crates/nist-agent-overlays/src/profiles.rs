@@ -202,7 +202,19 @@ mod tests {
     }
 
     fn opts() -> OverlayBuilder {
-        OverlayBuilder::placeholder()
+        // NA2-B-028: `PolicyBundle::activate` now refuses un-rotated
+        // `did:placeholder:*` identities and an infinite expiry, so
+        // the activation-path tests must start from a deployable
+        // builder (real DIDs + finite window), not the placeholder.
+        let mut role_assignments = BTreeMap::new();
+        for r in Role::ALL {
+            role_assignments.insert(*r, vec![format!("did:citrate:{:?}:0xabc", r)]);
+        }
+        OverlayBuilder {
+            role_assignments,
+            not_before: 0,
+            expires_at: 4_102_444_800, // 2100-01-01, finite
+        }
     }
 
     // ── construction tests ──

@@ -34,7 +34,11 @@ impl GenericEvmChainClient {
         addresses: ContractAddresses,
     ) -> Option<Self> {
         let stripped = hex_key.trim().trim_start_matches("0x");
-        let bytes = hex::decode(stripped).ok()?;
+        // NA2-B-007: hold the decoded private-key material in
+        // `Zeroizing` buffers so the raw bytes are wiped on drop
+        // rather than left on the heap/stack after `SigningKey`
+        // (which zeroizes itself) has been constructed.
+        let bytes = zeroize::Zeroizing::new(hex::decode(stripped).ok()?);
         if bytes.len() != 32 {
             tracing::warn!(
                 "GenericEvmChainClient key must be 32 bytes; got {}",
@@ -42,9 +46,9 @@ impl GenericEvmChainClient {
             );
             return None;
         }
-        let mut arr = [0u8; 32];
+        let mut arr = zeroize::Zeroizing::new([0u8; 32]);
         arr.copy_from_slice(&bytes);
-        let signing_key = SigningKey::from_bytes(&arr.into()).ok()?;
+        let signing_key = SigningKey::from_bytes((&*arr).into()).ok()?;
         let from_address_hex = derive_address_hex(&signing_key);
         Some(Self {
             signing_key,
