@@ -119,6 +119,67 @@ impl AttestationAllowlist {
     }
 }
 
+/// Minimum raw length (bytes) of a plausible attestation chain
+/// envelope. A real Apple SEP / Google StrongBox chain is a full
+/// certificate chain (hundreds of bytes); anything shorter than a
+/// single 256-bit value is a self-asserted stub and is refused.
+/// This is NOT full cryptographic verification — see
+/// [`AttestationChainVerifier`].
+pub const MIN_CHAIN_BYTES: usize = 32;
+
+/// Decision seam for admitting a device attestation (NA2-B-005).
+///
+/// Previously `PairingRecord::apply_attestation` stored whatever
+/// envelope the device presented and advanced the state machine
+/// without any check — so a device claiming `"apple-sep"` with a
+/// one-byte envelope was accepted. The state machine now routes the
+/// envelope through a verifier, and the workspace default
+/// ([`DenyingChainVerifier`]) fails **closed**: nothing is admitted
+/// until a real verifier is wired.
+pub trait AttestationChainVerifier {
+    fn verify(&self, attestation: &DeviceAttestation) -> Result<(), MobilePairingError>;
+}
+
+/// Fail-closed default. Until the real SEP / StrongBox certificate-
+/// chain verification lands (S-12), no attestation is admitted.
+/// Wiring this rather than silently accepting is the NA2-B-005 fix.
+pub struct DenyingChainVerifier;
+
+impl AttestationChainVerifier for DenyingChainVerifier {
+    fn verify(&self, _attestation: &DeviceAttestation) -> Result<(), MobilePairingError> {
+        Err(MobilePairingError::AttestationUnverified {
+            reason: "no attestation-chain verifier configured (S-12 crypto not wired)".into(),
+        })
+    }
+}
+
+/// Allowlist-backed verifier: enforces the operator allowlist AND
+/// rejects a degenerate envelope (empty / non-hex / shorter than
+/// [`MIN_CHAIN_BYTES`]). This closes the "self-asserted chain id
+/// with no chain bytes is accepted" gap; it is a necessary but not
+/// sufficient check, and the real cryptographic chain verification
+/// is still owed (S-12).
+impl AttestationChainVerifier for AttestationAllowlist {
+    fn verify(&self, attestation: &DeviceAttestation) -> Result<(), MobilePairingError> {
+        self.validate_chain(attestation)?;
+        let raw = hex::decode(attestation.chain_bytes_hex.trim_start_matches("0x")).map_err(|e| {
+            MobilePairingError::AttestationUnverified {
+                reason: format!("chain_bytes_hex is not valid hex: {e}"),
+            }
+        })?;
+        if raw.len() < MIN_CHAIN_BYTES {
+            return Err(MobilePairingError::AttestationUnverified {
+                reason: format!(
+                    "chain envelope too short ({} bytes < {} minimum) — self-asserted stub",
+                    raw.len(),
+                    MIN_CHAIN_BYTES
+                ),
+            });
+        }
+        Ok(())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -189,5 +250,54 @@ mod tests {
     fn vendor_serializes_kebab_case() {
         let s = serde_json::to_string(&DeviceVendor::Google).unwrap();
         assert_eq!(s, "\"google\"");
+    }
+
+    #[test]
+    fn denying_verifier_rejects_everything() {
+        // NA2-B-005: the fail-closed default admits no attestation.
+        let v = DenyingChainVerifier;
+        let err = v
+            .verify(&att("apple-sep", DeviceVendor::Apple))
+            .unwrap_err();
+        assert!(matches!(err, MobilePairingError::AttestationUnverified { .. }));
+    }
+
+    #[test]
+    fn allowlist_verifier_rejects_degenerate_envelope() {
+        // NA2-B-005 tripwire: an allowlisted chain id with a stub
+        // (one-byte) envelope is no longer accepted on the device's
+        // say-so.
+        let a = AttestationAllowlist::v1_default();
+        let err = a
+            .verify(&att("apple-sep", DeviceVendor::Apple)) // chain_bytes_hex = "00"
+            .unwrap_err();
+        assert!(matches!(err, MobilePairingError::AttestationUnverified { .. }), "got {err:?}");
+    }
+
+    #[test]
+    fn allowlist_verifier_accepts_allowlisted_chain_with_real_envelope() {
+        let a = AttestationAllowlist::v1_default();
+        let att = DeviceAttestation {
+            chain_id: AttestationChainId::new("apple-sep"),
+            vendor: DeviceVendor::Apple,
+            chain_bytes_hex: "cd".repeat(MIN_CHAIN_BYTES),
+            display_label: "iPhone".into(),
+        };
+        a.verify(&att).expect("allowlisted chain, non-degenerate envelope");
+    }
+
+    #[test]
+    fn allowlist_verifier_still_rejects_non_allowlisted_chain() {
+        let a = AttestationAllowlist::v1_default();
+        let att = DeviceAttestation {
+            chain_id: AttestationChainId::new("samsung-knox"),
+            vendor: DeviceVendor::Samsung,
+            chain_bytes_hex: "cd".repeat(MIN_CHAIN_BYTES),
+            display_label: "Galaxy".into(),
+        };
+        assert!(matches!(
+            a.verify(&att),
+            Err(MobilePairingError::AttestationNotAllowlisted { .. })
+        ));
     }
 }
