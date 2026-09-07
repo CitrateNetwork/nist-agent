@@ -44,6 +44,28 @@ fn blocker(name: &str, message: impl Into<String>) -> CheckResult {
     }
 }
 
+/// A check whose dependency was absent so nothing could be verified.
+///
+/// NA2-B-001: a skipped check MUST be distinguishable from a real
+/// `Pass`. Returning `Pass` here made an unconfigured (or partially
+/// configured) deployment emit an all-`Pass`, exit-0 compliance
+/// report with no machine-readable signal that nothing was checked.
+/// We return `Severity::Warn` and carry the reason in
+/// `details["skipped"]` so `--json` consumers can detect the skip
+/// (the free-text `message` alone is not machine-readable), and so
+/// the overall severity / exit code reflect that a control was not
+/// exercised rather than satisfied.
+fn skipped(name: &str, reason: &str) -> CheckResult {
+    let mut details = BTreeMap::new();
+    details.insert("skipped".to_string(), reason.to_string());
+    CheckResult {
+        name: name.into(),
+        severity: Severity::Warn,
+        message: format!("skipped: {reason}"),
+        details,
+    }
+}
+
 // ── #3 PolicyBundleValidityCheck ────────────────────────────────
 
 /// RFC §10.2 check 3 — policy bundle is signed by SecurityOfficer
@@ -63,7 +85,7 @@ impl NistCheck for PolicyBundleValidityCheck {
     }
     fn run(&self, ctx: &NistDoctorContext) -> CheckResult {
         let Some(raw) = &ctx.raw_bundle else {
-            return pass(self.name(), "skipped: no raw_bundle in context");
+            return skipped(self.name(), "no raw_bundle in context");
         };
         let Some(pk) = &ctx.so_pubkey else {
             return blocker(
@@ -113,7 +135,7 @@ impl NistCheck for NetworkPostureCheck {
         use nist_agent_policy::types::EgressPosture;
 
         let Some(raw) = &ctx.raw_bundle else {
-            return pass(self.name(), "skipped: no raw_bundle in context");
+            return skipped(self.name(), "no raw_bundle in context");
         };
         let Some(pk) = &ctx.so_pubkey else {
             return blocker(self.name(), "raw_bundle present but no SO pubkey");
@@ -168,10 +190,10 @@ impl NistCheck for ModelHashCheck {
     }
     fn run(&self, ctx: &NistDoctorContext) -> CheckResult {
         let Some(path) = &ctx.model_path else {
-            return pass(self.name(), "skipped: no model_path in context");
+            return skipped(self.name(), "no model_path in context");
         };
         let Some(expected) = &ctx.model_expected_sha256 else {
-            return pass(self.name(), "skipped: no model_expected_sha256 in context");
+            return skipped(self.name(), "no model_expected_sha256 in context");
         };
         match nist_agent_model::verify_sha256(path, expected) {
             Ok(()) => pass(
@@ -209,7 +231,7 @@ impl NistCheck for TlaSpecsCurrentCheck {
     }
     fn run(&self, ctx: &NistDoctorContext) -> CheckResult {
         let Some(dir) = &ctx.tla_specs_dir else {
-            return pass(self.name(), "skipped: no tla_specs_dir in context");
+            return skipped(self.name(), "no tla_specs_dir in context");
         };
         let entries = match std::fs::read_dir(dir) {
             Ok(e) => e,
@@ -276,7 +298,7 @@ impl NistCheck for RoleLatticeCheck {
     }
     fn run(&self, ctx: &NistDoctorContext) -> CheckResult {
         let Some(raw) = &ctx.raw_bundle else {
-            return pass(self.name(), "skipped: no raw_bundle in context");
+            return skipped(self.name(), "no raw_bundle in context");
         };
         let Some(pk) = &ctx.so_pubkey else {
             return blocker(self.name(), "raw_bundle present but no SO pubkey");
@@ -323,10 +345,13 @@ mod tests {
 
     #[test]
     fn policy_check_skips_without_bundle() {
+        // NA2-B-001: a skipped check is Warn, not Pass, and the skip
+        // is machine-readable via details["skipped"].
         let ctx = NistDoctorContext::empty(0);
         let r = PolicyBundleValidityCheck.run(&ctx);
-        assert!(matches!(r.severity, Severity::Pass));
+        assert!(matches!(r.severity, Severity::Warn), "got {r:?}");
         assert!(r.message.contains("skipped"));
+        assert!(r.details.contains_key("skipped"), "skip must be machine-readable");
     }
 
     #[test]
@@ -439,9 +464,11 @@ mod tests {
 
     #[test]
     fn tla_check_skips_without_dir() {
+        // NA2-B-001: skip is Warn + machine-readable, never Pass.
         let ctx = NistDoctorContext::empty(0);
         let r = TlaSpecsCurrentCheck.run(&ctx);
-        assert!(matches!(r.severity, Severity::Pass));
+        assert!(matches!(r.severity, Severity::Warn), "got {r:?}");
+        assert!(r.details.contains_key("skipped"));
     }
 
     #[test]
@@ -504,14 +531,41 @@ mod tests {
 
     // ── Composite run() ──
 
+    /// RC-8 tripwire for NA2-B-001.
+    ///
+    /// For every check in `v1_checks()`, running against an EMPTY
+    /// context (every dependency absent) MUST NOT return
+    /// `Severity::Pass`. An unexercised check can never be
+    /// indistinguishable from a satisfied one — otherwise an
+    /// unconfigured deployment emits an all-Pass, exit-0 compliance
+    /// report claiming controls were verified when nothing was.
+    ///
+    /// This test FAILS against the pre-fix code (which returned
+    /// `Pass` on every skip) and passes after the Warn-on-skip fix.
     #[test]
-    fn v1_checks_run_against_empty_context_all_skip() {
+    fn no_check_passes_against_empty_context() {
         let ctx = NistDoctorContext::empty(0);
-        let results = crate::run(&ctx, &crate::v1_checks());
-        assert_eq!(results.len(), 5);
+        let checks = crate::v1_checks();
+        let results = crate::run(&ctx, &checks);
+        assert_eq!(results.len(), checks.len());
         for r in &results {
-            assert!(matches!(r.severity, Severity::Pass), "{}: {r:?}", r.name);
+            assert!(
+                !matches!(r.severity, Severity::Pass),
+                "check {} returned Pass against an empty context — a skipped \
+                 control must be distinguishable from a satisfied one",
+                r.name
+            );
+            // The skip must also be machine-readable, not free-text only.
+            assert!(
+                r.details.contains_key("skipped"),
+                "check {} skipped without a machine-readable details[\"skipped\"]",
+                r.name
+            );
         }
-        assert!(matches!(crate::compute_overall(&results), Severity::Pass));
+        // And the overall summary must not read Pass.
+        assert!(!matches!(
+            crate::compute_overall(&results),
+            Severity::Pass
+        ));
     }
 }

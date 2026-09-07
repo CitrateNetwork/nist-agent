@@ -11,8 +11,9 @@
 use anyhow::{Context, Result};
 use clap::Args;
 use nist_agent_doctor::{
-    compute_overall, run as run_checks, v1_checks, NistDoctorContext, Severity,
+    compute_overall, run as run_checks, v1_checks, CheckResult, NistDoctorContext, Severity,
 };
+use std::collections::BTreeMap;
 use std::path::PathBuf;
 
 #[derive(Args, Debug)]
@@ -56,15 +57,40 @@ pub async fn run(args: DoctorArgs) -> Result<i32> {
     ctx.model_path = args.model_path;
     ctx.model_expected_sha256 = args.expected_model_sha256;
     ctx.tla_specs_dir = tla;
-    // PolicyBundle decoding is operator-side; the CLI carries the
-    // path but doesn't decode here. v1.0 wiring lands once
-    // RawSignedBundle::from_path is canonized; until then, the
-    // bundle-dependent checks skip with a Pass-shaped "no bundle
-    // wired" result.
-    let _ = args.policy_bundle;
 
     let checks = v1_checks();
-    let results = run_checks(&ctx, &checks);
+    let mut results = run_checks(&ctx, &checks);
+
+    // NA2-B-001: `--policy-bundle` must NOT be silently discarded.
+    // v1.0 decode wiring (RawSignedBundle::from_path + a trusted
+    // SecurityOfficer pubkey surface) is not canonized yet, so the
+    // doctor cannot actually verify a supplied bundle. Rather than
+    // dropping the argument on the floor — which let the operator
+    // believe their bundle had been checked and produced an all-Pass
+    // report — we emit an explicit, machine-readable Warn so the
+    // overall severity and exit code reflect that the supplied bundle
+    // was NOT verified.
+    if let Some(bundle_path) = &args.policy_bundle {
+        let mut details = BTreeMap::new();
+        details.insert(
+            "skipped".to_string(),
+            "policy-bundle supplied but doctor cannot decode/verify it \
+             (no RawSignedBundle::from_path wiring / no trusted SecurityOfficer \
+             pubkey surface configured)"
+                .to_string(),
+        );
+        details.insert("path".to_string(), bundle_path.display().to_string());
+        results.push(CheckResult {
+            name: "policy-bundle-wired".to_string(),
+            severity: Severity::Warn,
+            message: format!(
+                "policy-bundle {} supplied but not verified — nothing was checked against it",
+                bundle_path.display()
+            ),
+            details,
+        });
+    }
+
     let overall = compute_overall(&results);
 
     if args.json {
@@ -120,5 +146,53 @@ mod tests {
         assert_eq!(severity_to_exit(Severity::Pass), 0);
         assert_eq!(severity_to_exit(Severity::Warn), 1);
         assert_eq!(severity_to_exit(Severity::Blocker), 2);
+    }
+
+    /// NA2-B-001: supplying `--policy-bundle` must NOT silently
+    /// produce an all-Pass, exit-0 report. With a bundle path set but
+    /// no decode wiring, the doctor emits a Warn, so the overall exit
+    /// code is 1 (non-zero), not 0.
+    #[tokio::test]
+    async fn supplying_policy_bundle_does_not_silently_pass() {
+        let args = DoctorArgs {
+            policy_bundle: Some(PathBuf::from("/nonexistent/bundle.cbor")),
+            model_path: None,
+            expected_model_sha256: None,
+            tla_specs_dir: None,
+            json: true,
+        };
+        let exit = run(args).await.expect("doctor run");
+        assert_ne!(exit, 0, "a supplied --policy-bundle must not yield exit 0");
+    }
+
+    /// Tripwire: every declared `DoctorArgs` field must be read on
+    /// some code path in `run`. This destructure forces the test to
+    /// name every field; if a new field is added it fails to compile
+    /// until it is accounted for here (and, by review, wired in
+    /// `run`). It guards against a repeat of the `let _ =
+    /// args.policy_bundle;` silent-discard bug.
+    #[test]
+    fn every_doctor_args_field_is_accounted_for() {
+        let args = DoctorArgs {
+            policy_bundle: Some(PathBuf::from("p")),
+            model_path: Some(PathBuf::from("m")),
+            expected_model_sha256: Some("s".into()),
+            tla_specs_dir: Some(PathBuf::from("t")),
+            json: true,
+        };
+        // Exhaustive destructure — compile error if a field is added
+        // without being considered here.
+        let DoctorArgs {
+            policy_bundle,
+            model_path,
+            expected_model_sha256,
+            tla_specs_dir,
+            json,
+        } = args;
+        assert!(policy_bundle.is_some());
+        assert!(model_path.is_some());
+        assert!(expected_model_sha256.is_some());
+        assert!(tla_specs_dir.is_some());
+        assert!(json);
     }
 }
