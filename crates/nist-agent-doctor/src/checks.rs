@@ -308,16 +308,32 @@ impl NistCheck for RoleLatticeCheck {
             Err(e) => return blocker(self.name(), format!("bundle verify failed: {e}")),
         };
         let mut missing: Vec<Role> = Vec::new();
+        let mut placeholder: Vec<Role> = Vec::new();
         for r in Role::ALL {
-            let assigned = bundle.role_assignments.get(r).map(|v| v.len()).unwrap_or(0);
-            if assigned == 0 {
-                missing.push(*r);
+            match bundle.role_assignments.get(r) {
+                None => missing.push(*r),
+                Some(dids) if dids.is_empty() => missing.push(*r),
+                Some(dids) => {
+                    // NA2-B-028: an un-rotated placeholder DID satisfies
+                    // the non-empty check but names no real identity.
+                    if dids
+                        .iter()
+                        .any(|d| d.starts_with(nist_agent_policy::bundle::PLACEHOLDER_DID_PREFIX))
+                    {
+                        placeholder.push(*r);
+                    }
+                }
             }
         }
-        if missing.is_empty() {
-            pass(self.name(), "all 5 base roles have ≥1 identity")
-        } else {
+        if !missing.is_empty() {
             blocker(self.name(), format!("missing role identities: {missing:?}"))
+        } else if !placeholder.is_empty() {
+            blocker(
+                self.name(),
+                format!("roles still hold un-rotated placeholder DIDs: {placeholder:?}"),
+            )
+        } else {
+            pass(self.name(), "all 5 base roles have ≥1 real identity")
         }
     }
 }
@@ -330,6 +346,20 @@ mod tests {
 
     fn fixture_key() -> SigningKey {
         SigningKey::from_bytes(&[7u8; 32])
+    }
+
+    /// A bundle an operator could actually deploy: placeholder DIDs
+    /// rotated to real identities and a finite validity window.
+    /// `minimal_template()` is deliberately NOT deployable
+    /// (NA2-B-028), so checks that assert a PASS must start here.
+    fn deployable_bundle() -> PolicyBundle {
+        let mut b = PolicyBundle::minimal_template();
+        for (role, dids) in b.role_assignments.iter_mut() {
+            *dids = vec![format!("did:citrate:{:?}:0xabc", role)];
+        }
+        b.not_before = 0;
+        b.expires_at = 4_102_444_800; // 2100-01-01, finite
+        b
     }
 
     fn signed_bundle(bundle: &PolicyBundle, sk: &SigningKey) -> RawSignedBundle {
@@ -357,7 +387,7 @@ mod tests {
     #[test]
     fn policy_check_passes_on_valid_bundle() {
         let sk = fixture_key();
-        let bundle = PolicyBundle::minimal_template();
+        let bundle = deployable_bundle();
         let raw = signed_bundle(&bundle, &sk);
         let mut ctx = NistDoctorContext::empty(0);
         ctx.raw_bundle = Some(raw);
@@ -506,13 +536,28 @@ mod tests {
     #[test]
     fn role_lattice_check_passes_on_complete_template() {
         let sk = fixture_key();
-        let bundle = PolicyBundle::minimal_template(); // all five seeded
+        let bundle = deployable_bundle(); // all five seeded with real DIDs
         let raw = signed_bundle(&bundle, &sk);
         let mut ctx = NistDoctorContext::empty(0);
         ctx.raw_bundle = Some(raw);
         ctx.so_pubkey = Some(sk.verifying_key());
         let r = RoleLatticeCheck.run(&ctx);
         assert!(matches!(r.severity, Severity::Pass), "got {r:?}");
+    }
+
+    #[test]
+    fn role_lattice_check_blocks_on_unrotated_placeholder_dids() {
+        // NA2-B-028 tripwire: a bundle straight from the template
+        // (placeholder DIDs) must NOT pass the role-lattice check.
+        let sk = fixture_key();
+        let bundle = PolicyBundle::minimal_template();
+        let raw = signed_bundle(&bundle, &sk);
+        let mut ctx = NistDoctorContext::empty(0);
+        ctx.raw_bundle = Some(raw);
+        ctx.so_pubkey = Some(sk.verifying_key());
+        let r = RoleLatticeCheck.run(&ctx);
+        assert!(matches!(r.severity, Severity::Blocker), "got {r:?}");
+        assert!(r.message.contains("placeholder"));
     }
 
     #[test]

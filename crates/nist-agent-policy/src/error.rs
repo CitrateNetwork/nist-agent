@@ -61,4 +61,29 @@ pub enum PolicyError {
     /// if any role has zero identities (RFC §5.3).
     #[error("roles: required base role {0:?} has no identities assigned")]
     RoleUnassigned(super::types::Role),
+
+    /// A role is still assigned an un-rotated `did:placeholder:*`
+    /// identity from `minimal_template()`. Activating such a bundle
+    /// would satisfy the role-lattice check with fictitious
+    /// identities (NA2-B-028). The operator MUST rotate every
+    /// placeholder DID before the bundle can activate.
+    #[error("roles: role {role:?} still holds un-rotated placeholder DID '{did}'")]
+    PlaceholderDidNotRotated {
+        role: super::types::Role,
+        did: String,
+    },
+
+    /// The bundle declares no finite validity window
+    /// (`expires_at == i64::MAX`), so RFC §10.2 check-3 ("not past
+    /// its signed validity window") can never fire (NA2-B-028). A
+    /// deployable bundle MUST carry a finite expiry.
+    #[error("validity: bundle has no finite expiry (expires_at == i64::MAX)")]
+    NoFiniteValidity,
+
+    /// An overlay decommissioning proof did not verify against the
+    /// referenced workflow document — either the reference was empty
+    /// or the recorded SHA-256 did not match the document's digest
+    /// (NA2-B-029). Removal is refused.
+    #[error("overlay: decommissioning workflow proof invalid: {0}")]
+    WorkflowProofInvalid(String),
 }
