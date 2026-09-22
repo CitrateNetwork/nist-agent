@@ -57,10 +57,7 @@ pub enum MobilePairingError {
     /// The pairing's short-lived token window has elapsed
     /// (NA2-B-006). The pairing must be re-initiated.
     #[error("pairing token expired at {expires_at_unix} (now {now_unix})")]
-    PairingExpired {
-        expires_at_unix: i64,
-        now_unix: i64,
-    },
+    PairingExpired { expires_at_unix: i64, now_unix: i64 },
 
     /// Too many failed token presentations; the pairing is
     /// terminated to stop unlimited brute-force retries (NA2-B-006).

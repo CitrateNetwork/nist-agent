@@ -391,7 +391,10 @@ mod tests {
             .activate_against(0, Some(&prior))
             .expect_err("silent overlay drop must be refused");
         assert!(
-            matches!(err, PolicyError::OverlayRemovalForbidden(Overlay::HipaaHitech)),
+            matches!(
+                err,
+                PolicyError::OverlayRemovalForbidden(Overlay::HipaaHitech)
+            ),
             "got {err:?}"
         );
 
@@ -407,13 +410,19 @@ mod tests {
         // NA2-B-004: the tier ratchet now runs against the prior
         // bundle's actual tier map, not an empty map.
         let mut prior = deployable_template();
-        prior.risk_tier_map.insert("phi-export".into(), RiskTier::High);
+        prior
+            .risk_tier_map
+            .insert("phi-export".into(), RiskTier::High);
         let mut next = deployable_template();
-        next.risk_tier_map.insert("phi-export".into(), RiskTier::Low);
+        next.risk_tier_map
+            .insert("phi-export".into(), RiskTier::Low);
         let err = next
             .activate_against(0, Some(&prior))
             .expect_err("tier de-escalation vs prior must be refused");
-        assert!(matches!(err, PolicyError::TierDeEscalation { .. }), "got {err:?}");
+        assert!(
+            matches!(err, PolicyError::TierDeEscalation { .. }),
+            "got {err:?}"
+        );
     }
 
     #[test]

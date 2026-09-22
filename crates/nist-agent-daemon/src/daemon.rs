@@ -392,10 +392,7 @@ mod tests {
         let err = daemon.bind().expect_err("must refuse a non-socket path");
         assert!(matches!(err, DaemonError::Filesystem(_)), "got {err:?}");
         // The file must be untouched.
-        assert_eq!(
-            std::fs::read(&victim).unwrap(),
-            b"important operator file"
-        );
+        assert_eq!(std::fs::read(&victim).unwrap(), b"important operator file");
     }
 
     #[tokio::test]

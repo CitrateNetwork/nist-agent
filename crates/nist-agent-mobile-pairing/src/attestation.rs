@@ -162,11 +162,12 @@ impl AttestationChainVerifier for DenyingChainVerifier {
 impl AttestationChainVerifier for AttestationAllowlist {
     fn verify(&self, attestation: &DeviceAttestation) -> Result<(), MobilePairingError> {
         self.validate_chain(attestation)?;
-        let raw = hex::decode(attestation.chain_bytes_hex.trim_start_matches("0x")).map_err(|e| {
-            MobilePairingError::AttestationUnverified {
-                reason: format!("chain_bytes_hex is not valid hex: {e}"),
-            }
-        })?;
+        let raw =
+            hex::decode(attestation.chain_bytes_hex.trim_start_matches("0x")).map_err(|e| {
+                MobilePairingError::AttestationUnverified {
+                    reason: format!("chain_bytes_hex is not valid hex: {e}"),
+                }
+            })?;
         if raw.len() < MIN_CHAIN_BYTES {
             return Err(MobilePairingError::AttestationUnverified {
                 reason: format!(
@@ -259,7 +260,10 @@ mod tests {
         let err = v
             .verify(&att("apple-sep", DeviceVendor::Apple))
             .unwrap_err();
-        assert!(matches!(err, MobilePairingError::AttestationUnverified { .. }));
+        assert!(matches!(
+            err,
+            MobilePairingError::AttestationUnverified { .. }
+        ));
     }
 
     #[test]
@@ -271,7 +275,10 @@ mod tests {
         let err = a
             .verify(&att("apple-sep", DeviceVendor::Apple)) // chain_bytes_hex = "00"
             .unwrap_err();
-        assert!(matches!(err, MobilePairingError::AttestationUnverified { .. }), "got {err:?}");
+        assert!(
+            matches!(err, MobilePairingError::AttestationUnverified { .. }),
+            "got {err:?}"
+        );
     }
 
     #[test]
@@ -283,7 +290,8 @@ mod tests {
             chain_bytes_hex: "cd".repeat(MIN_CHAIN_BYTES),
             display_label: "iPhone".into(),
         };
-        a.verify(&att).expect("allowlisted chain, non-degenerate envelope");
+        a.verify(&att)
+            .expect("allowlisted chain, non-degenerate envelope");
     }
 
     #[test]

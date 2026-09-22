@@ -277,9 +277,11 @@ mod tests {
     async fn try_discover_refuses_non_loopback_when_egress_disabled() {
         // NA2-B-030 tripwire: a non-loopback endpoint must be refused
         // BEFORE any socket is opened when egress is not allowed.
-        let result =
-            OllamaClient::try_discover("192.0.2.1", 11434, "any-model", false).await;
-        assert!(matches!(result, Err(ModelError::EgressForbidden("ollama"))), "got {result:?}");
+        let result = OllamaClient::try_discover("192.0.2.1", 11434, "any-model", false).await;
+        assert!(
+            matches!(result, Err(ModelError::EgressForbidden("ollama"))),
+            "got {result:?}"
+        );
     }
 
     #[tokio::test]
@@ -289,7 +291,10 @@ mod tests {
         let result =
             OllamaClient::try_discover("127.0.0.1", DEFAULT_OLLAMA_PORT, "no-such-model-x9", false)
                 .await;
-        assert!(result.is_ok(), "loopback discovery must not be egress-gated: {result:?}");
+        assert!(
+            result.is_ok(),
+            "loopback discovery must not be egress-gated: {result:?}"
+        );
     }
 
     #[test]

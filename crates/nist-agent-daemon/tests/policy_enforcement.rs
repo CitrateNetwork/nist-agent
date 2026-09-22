@@ -188,11 +188,7 @@ fn daemon_refuses_bundle_that_silently_drops_active_overlay() {
     Daemon::prepare(cfg).expect("first activation with HIPAA succeeds");
 
     // Second bundle: CMMC baseline only (HIPAA silently dropped).
-    write_signed_bundle_with_overlays(
-        &bundle_path,
-        &sk,
-        ActiveOverlays::new_with_cmmc_baseline(),
-    );
+    write_signed_bundle_with_overlays(&bundle_path, &sk, ActiveOverlays::new_with_cmmc_baseline());
     let cfg2 = config_with_policy(tmp.path(), &bundle_path, &pubkey_hex);
     assert!(
         Daemon::prepare(cfg2).is_err(),

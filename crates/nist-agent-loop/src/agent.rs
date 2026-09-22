@@ -366,7 +366,10 @@ mod tests {
             .resume(&id, payload, 0)
             .await
             .expect_err("must refuse unsigned approval");
-        assert!(matches!(err, AgentLoopError::ApprovalUnauthorized(_)), "got {err:?}");
+        assert!(
+            matches!(err, AgentLoopError::ApprovalUnauthorized(_)),
+            "got {err:?}"
+        );
     }
 
     #[tokio::test]
@@ -391,7 +394,10 @@ mod tests {
             .resume(&id, payload, 101)
             .await
             .expect_err("must refuse expired approval");
-        assert!(matches!(err, AgentLoopError::ApprovalExpired(_)), "got {err:?}");
+        assert!(
+            matches!(err, AgentLoopError::ApprovalExpired(_)),
+            "got {err:?}"
+        );
     }
 
     #[tokio::test]

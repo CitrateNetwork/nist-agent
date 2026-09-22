@@ -372,11 +372,16 @@ mod tests {
         r.apply_security_officer("did:role:sec-officer", "2026-05-21T10:01:00Z")
             .unwrap();
         assert_eq!(r.state, PairingState::SecurityOfficerSigned);
-        r.apply_attestation(att(), &verifier(), "2026-05-21T10:02:00Z").unwrap();
+        r.apply_attestation(att(), &verifier(), "2026-05-21T10:02:00Z")
+            .unwrap();
         assert_eq!(r.state, PairingState::DeviceAttested);
         assert!(r.attestation.is_some());
-        r.activate(&PairingToken::new("abcd-1234"), "2026-05-21T10:03:00Z", 1_100)
-            .unwrap();
+        r.activate(
+            &PairingToken::new("abcd-1234"),
+            "2026-05-21T10:03:00Z",
+            1_100,
+        )
+        .unwrap();
         assert_eq!(r.state, PairingState::Active);
         assert!(r.is_signable());
         // Token is cleared once active to avoid leaking it on
@@ -428,7 +433,8 @@ mod tests {
         assert_eq!(r.failed_attempts, 1);
         // A subsequent presentation of the right token within the
         // attempt budget still works.
-        r.activate(&PairingToken::new("abcd-1234"), "t4", 1_100).unwrap();
+        r.activate(&PairingToken::new("abcd-1234"), "t4", 1_100)
+            .unwrap();
         assert_eq!(r.state, PairingState::Active);
     }
 
@@ -471,7 +477,10 @@ mod tests {
         let err = r
             .activate(&PairingToken::new("abcd-1234"), "t3", 1_301)
             .unwrap_err();
-        assert!(matches!(err, MobilePairingError::PairingExpired { .. }), "got {err:?}");
+        assert!(
+            matches!(err, MobilePairingError::PairingExpired { .. }),
+            "got {err:?}"
+        );
         assert_eq!(r.state, PairingState::Rejected);
         assert!(r.token.is_none());
     }
@@ -513,7 +522,8 @@ mod tests {
         let mut r = fresh();
         r.apply_security_officer("did:x", "t1").unwrap();
         r.apply_attestation(att(), &verifier(), "t2").unwrap();
-        r.activate(&PairingToken::new("abcd-1234"), "t3", 1_100).unwrap();
+        r.activate(&PairingToken::new("abcd-1234"), "t3", 1_100)
+            .unwrap();
         let err = r.reject("t4").unwrap_err();
         assert!(matches!(
             err,
@@ -526,7 +536,8 @@ mod tests {
         let mut r = fresh();
         r.apply_security_officer("did:x", "t1").unwrap();
         r.apply_attestation(att(), &verifier(), "t2").unwrap();
-        r.activate(&PairingToken::new("abcd-1234"), "t3", 1_100).unwrap();
+        r.activate(&PairingToken::new("abcd-1234"), "t3", 1_100)
+            .unwrap();
         r.revoke("t4").unwrap();
         assert_eq!(r.state, PairingState::Revoked);
         assert!(!r.is_signable());

@@ -381,7 +381,10 @@ mod tests {
         let r = PolicyBundleValidityCheck.run(&ctx);
         assert!(matches!(r.severity, Severity::Warn), "got {r:?}");
         assert!(r.message.contains("skipped"));
-        assert!(r.details.contains_key("skipped"), "skip must be machine-readable");
+        assert!(
+            r.details.contains_key("skipped"),
+            "skip must be machine-readable"
+        );
     }
 
     #[test]
@@ -608,9 +611,6 @@ mod tests {
             );
         }
         // And the overall summary must not read Pass.
-        assert!(!matches!(
-            crate::compute_overall(&results),
-            Severity::Pass
-        ));
+        assert!(!matches!(crate::compute_overall(&results), Severity::Pass));
     }
 }
