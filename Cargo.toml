@@ -46,7 +46,7 @@ citrate-agent-core = { version = "0.4", git = "ssh://git@github-citrate-agent-ru
 # 0f2d16b486a9ec1ed8a0394440dac480075d6942). Drift-check enforces
 # this via the [[drift]] entry landed in citrate-federation commit
 # 5759beb.
-citrate-wallet-core = { version = "0.4", git = "ssh://git@github-citrate-chain/CitrateNetwork/citrate-chain", rev = "0f2d16b486a9ec1ed8a0394440dac480075d6942" }
+citrate-wallet-core = { version = "0.4", git = "ssh://git@github-citrate-chain/CitrateNetwork/citrate-chain", rev = "2d1ca33a9796a615da7eb236ab95c7afb59a41f7" }
 
 # Standard deps mirrored from citrate-agent-runtime so version
 # resolution stays stable. Add to this block instead of crate-local
