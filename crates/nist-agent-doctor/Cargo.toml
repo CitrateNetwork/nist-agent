@@ -1,5 +1,6 @@
 [package]
 name = "nist-agent-doctor"
+publish = false  # internal workspace crate; never published to crates.io
 description = "Doctor pre-flight checks 6–11 for nist-agent per RFC-CIT-AGENT-0001 §10.2. Each check binds to a surface S-1..S-6 built (PolicyBundle validity, network posture, model hash, TLA spec currency, role lattice). Companion to citrate-agent-core::doctor (upstream checks 1, 4, 10, 11)."
 version.workspace = true
 edition.workspace = true

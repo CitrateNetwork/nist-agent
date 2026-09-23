@@ -1,5 +1,6 @@
 [package]
 name = "nist-agent-audit-sinks"
+publish = false  # internal workspace crate; never published to crates.io
 description = "Audit-record storage backends for nist-agent — WORM filesystem sink (FedRAMP High + CJIS eligibility) and NFS/S3 sinks (S-9b). Implements citrate_agent_core::audit::AuditSink."
 version.workspace = true
 edition.workspace = true

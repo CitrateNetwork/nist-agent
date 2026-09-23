@@ -1,5 +1,6 @@
 [package]
 name = "nist-agent-loop"
+publish = false  # internal workspace crate; never published to crates.io
 description = "Single-loop agent core for nist-agent — Agent struct, token-streaming step(), Action proposal, Checkpoint, state-managed interrupt per RFC-CIT-AGENT-0001 §3.1 + §5.4."
 version.workspace = true
 edition.workspace = true

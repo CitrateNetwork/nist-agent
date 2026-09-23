@@ -1,5 +1,6 @@
 [package]
 name = "nist-agent-chain"
+publish = false  # internal workspace crate; never published to crates.io
 description = "Chain-agnostic adapter for nist-agent — trait ChainClient with default Citrate L1 implementation and a generic EVM implementation. Sidecar value-add over citrate-agent-runtime per RFC-CIT-AGENT-0001 §3.2 + §7."
 version.workspace = true
 edition.workspace = true

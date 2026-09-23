@@ -1,5 +1,6 @@
 [package]
 name = "nist-agent-marketplace"
+publish = false  # internal workspace crate; never published to crates.io
 description = "Capsule marketplace browser + interactive chat surface render models per RFC §8.3. Headless typed view models drive the Slint UI (feat-ui) and the future CLI surface."
 version.workspace = true
 edition.workspace = true

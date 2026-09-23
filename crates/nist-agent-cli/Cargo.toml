@@ -1,5 +1,6 @@
 [package]
 name = "nist-agent-cli"
+publish = false  # internal workspace crate; never published to crates.io
 description = "Operator-facing CLI binary for nist-agent — doctor, model verify/infer, install, wizard, daemon, status. Composed from the workspace's library crates; ships as `citrate-agent` for operator convenience."
 version.workspace = true
 edition.workspace = true

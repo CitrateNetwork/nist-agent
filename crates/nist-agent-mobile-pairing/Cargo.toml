@@ -1,5 +1,6 @@
 [package]
 name = "nist-agent-mobile-pairing"
+publish = false  # internal workspace crate; never published to crates.io
 description = "Mobile-companion pairing protocol, attestation allowlist, per-overlay eligibility + TTL, and wire formats per RFC §5.6. Render-model and rule layer consumed by both the daemon and the (deferred) native iOS / Android apps."
 version.workspace = true
 edition.workspace = true

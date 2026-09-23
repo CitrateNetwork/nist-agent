@@ -1,5 +1,6 @@
 [package]
 name = "nist-agent-release"
+publish = false  # internal workspace crate; never published to crates.io
 description = "Release manifest, detached-signature verification, installer flow, GGUF SI-7 hash check, and daemon-hash doctor check per RFC §§3.3, 8.2, 11.1. Consumes signed release bundles produced by the (deferred) CI workflow per ADR-011."
 version.workspace = true
 edition.workspace = true

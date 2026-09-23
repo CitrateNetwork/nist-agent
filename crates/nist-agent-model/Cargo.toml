@@ -1,5 +1,6 @@
 [package]
 name = "nist-agent-model"
+publish = false  # internal workspace crate; never published to crates.io
 description = "Model resolver for nist-agent — Model trait, Ollama HTTP client, llama.cpp server client, ResolvedModel resolution order per RFC-CIT-AGENT-0001 §3.3 + §8.2. SHA-256 hash verification per NIST SI-7."
 version.workspace = true
 edition.workspace = true

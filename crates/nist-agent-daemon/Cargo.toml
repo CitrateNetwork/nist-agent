@@ -1,5 +1,6 @@
 [package]
 name = "nist-agent-daemon"
+publish = false  # internal workspace crate; never published to crates.io
 description = "Long-running daemon process for nist-agent — holds ApprovalQueue + AuditChain + ChainClient state, runs the anchor-cadence ticker, exposes a Unix-socket IPC surface per RFC §10.2. Consumed by `citrate-agent daemon`."
 version.workspace = true
 edition.workspace = true

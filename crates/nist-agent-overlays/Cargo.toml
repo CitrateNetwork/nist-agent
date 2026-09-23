@@ -1,5 +1,6 @@
 [package]
 name = "nist-agent-overlays"
+publish = false  # internal workspace crate; never published to crates.io
 description = "PolicyBundle factory functions per RFC §2.3 overlay (CMMC-L3 baseline + FERPA + COPPA + CIPA in v1; HIPAA + FedRAMP-High in v2 = S-9). Plus the retention-floor table per RFC §6.4."
 version.workspace = true
 edition.workspace = true

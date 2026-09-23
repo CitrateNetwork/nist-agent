@@ -1,5 +1,6 @@
 [package]
 name = "nist-agent-policy"
+publish = false  # internal workspace crate; never published to crates.io
 description = "Signed PolicyBundle + data-class lattice + overlay activation ratchet for nist-agent. Implements RFC-CIT-AGENT-0001 §2.3, §3.1, §5.2, §7.2. Canonical CBOR encoding per RFC 8949 §4.2.1; Ed25519 verification of SecurityOfficer signature."
 version.workspace = true
 edition.workspace = true

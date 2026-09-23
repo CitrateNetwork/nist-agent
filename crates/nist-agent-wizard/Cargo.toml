@@ -1,5 +1,6 @@
 [package]
 name = "nist-agent-wizard"
+publish = false  # internal workspace crate; never published to crates.io
 description = "First-run concierge wizard for nist-agent per RFC §8.1. Headless state machine + optional Slint UI (feat-ui). Drives org identity, five-role enrollment, hardware-key enrollment, overlay selection, and signed PolicyBundle emission."
 version.workspace = true
 edition.workspace = true
