@@ -297,7 +297,7 @@ jobs:
           cp gated-bin/citrate-agent release-staging/bin/
           chmod +x release-staging/bin/citrate-agent
           for f in docs/compliance/*/RUNBOOK.md; do
-            o="release-staging/runbooks/$(basename $(dirname $f)).RUNBOOK.md"
+            o="release-staging/runbooks/$(basename "$(dirname "$f")").RUNBOOK.md"
             cp "$f" "$o"
           done
 
@@ -326,7 +326,7 @@ jobs:
           # under each crate dir; consolidate to release-staging/sbom/
           # with crate-name prefix.
           for f in crates/*/sbom.json; do
-            crate=$(basename $(dirname $f))
+            crate=$(basename "$(dirname "$f")")
             cp "$f" "release-staging/sbom/${crate}.cdx.json"
           done
           find crates -name sbom.json -delete
