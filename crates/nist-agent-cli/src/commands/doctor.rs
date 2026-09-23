@@ -131,6 +131,9 @@ pub async fn run(args: DoctorArgs) -> Result<i32> {
 fn severity_to_exit(s: Severity) -> i32 {
     match s {
         Severity::Pass => 0,
+        // A skipped check did not run (e.g. an environment-gated probe) — it is
+        // not a failure, so it maps to success like Pass.
+        Severity::Skipped => 0,
         Severity::Warn => 1,
         Severity::Blocker => 2,
     }
