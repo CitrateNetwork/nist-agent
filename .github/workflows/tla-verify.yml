@@ -6,10 +6,13 @@ name: TLA+ Verify
 # planset/2026-05-19-nist-sidecar-v1/ROADMAP.md S-2 exit criteria.
 
 on:
-  push:
-    branches: [main]
-  pull_request:
+  # Off the blocking PR/push pipeline (owner decision 2026-09-23): TLC
+  # model-checking is valuable but too heavy/fragile (Java+TLC, long runs) to
+  # gate every merge on. The specs stay; run them on demand or on the weekly
+  # schedule. Re-add `pull_request:` here to make it merge-blocking again.
   workflow_dispatch:
+  schedule:
+    - cron: "0 7 * * 1"  # weekly, Monday 07:00 UTC
 
 permissions:
   contents: read
