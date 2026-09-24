@@ -36,7 +36,7 @@ the backlog.
 
 ## Phase 1 — v1.0-rc readiness (2026-Q3 → 2026-Q4)
 
-Maps RFC §11.1 "v1.0 Mainnet-Ready (Target Q4 2026)" minus
+Maps RFC §11.1 "v1.0 Mainnet-Ready (Target Q2 2027)" minus
 non-Phase-1 overlays (which slip to Phase 1.5 in §11.2).
 
 **Sprints (each gets a backlog stub seeded by S-1):**
@@ -90,7 +90,7 @@ non-Phase-1 overlays (which slip to Phase 1.5 in §11.2).
 - Trail of Bits report received; no Tier-1 findings outstanding.
 - Federation manifest pin for `nist-agent` updated to `v1.0.0-rc`.
 
-## Phase 2 — v1.0 mainnet anchor (2026-Q4)
+## Phase 2 — v1.0 mainnet anchor (2027-Q2)
 
 **Sprints.**
 - `S-14` — Pilot onboarding closeout; capture lessons learned in

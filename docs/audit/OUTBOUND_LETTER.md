@@ -8,7 +8,7 @@ audience: Trail of Bits intake / engagement team
 
 # Outbound engagement letter — DRAFT
 
-> Draft outbound message from Citrate Network Inc. to Trail of
+> Draft outbound message from Citrate Inc. to Trail of
 > Bits requesting a security audit of `nist-agent v1.0-rc`.
 > Treat the body below as a starting point — review, edit, and
 > send from your own inbox over your preferred channel (TOB's
@@ -27,7 +27,7 @@ audience: Trail of Bits intake / engagement team
 
 Hi Trail of Bits team,
 
-I'm Saul Loveman, principal architect at Citrate Network Inc.
+I'm Saul Loveman, principal architect at Citrate Inc.
 We're approaching the v1.0 release-candidate of **nist-agent**,
 a NIST-compliant agent harness implementing
 [RFC-CIT-AGENT-0001](https://github.com/CitrateNetwork/nist-agent/blob/main/docs/rfcs/RFC-CIT-AGENT-0001.md).
@@ -112,7 +112,7 @@ Reply at your convenience.
 
 Best,
 Saul Loveman
-Principal Architect, Citrate Network Inc.
+Principal Architect, Citrate Inc.
 `saulweiloveman@gmail.com` (engagement comms)
 `security@citratenetwork.org` (org security inbox)
 

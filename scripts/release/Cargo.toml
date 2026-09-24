@@ -4,7 +4,7 @@ description = "Soft-key release-manifest signer used by .github/workflows/releas
 version = "0.1.0"
 edition = "2021"
 publish = false
-authors = ["Citrate Network Inc."]
+authors = ["Citrate Inc."]
 license = "BUSL-1.1"
 # Not a member of the workspace — scripts/release is intentionally
 # standalone so the release pipeline doesn't drag the workspace's

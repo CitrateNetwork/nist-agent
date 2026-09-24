@@ -44,9 +44,9 @@ before v1.0.0.
 1. **This file** (you're here).
 2. **The RFC** — [`docs/rfcs/RFC-CIT-AGENT-0001.md`](../docs/rfcs/RFC-CIT-AGENT-0001.md). The architecture reference. Everything in this repo is downstream of it.
 3. **The planset** — [`planset/2026-05-19-nist-sidecar-v1/OVERVIEW.md`](planset/2026-05-19-nist-sidecar-v1/OVERVIEW.md). The multi-sprint workstream that produces v1.0.
-4. **Federation control plane** — [`citrate-federation/agentile/AGENT_ENTRY.md`](https://github.com/CitrateNetwork/citrate-federation/blob/main/agentile/AGENT_ENTRY.md). The active control-plane entry.
-5. **Active federation sprint** — [`citrate-federation/agentile/CURRENT.md`](https://github.com/CitrateNetwork/citrate-federation/blob/main/agentile/CURRENT.md).
-6. **Core rules** — [`citrate-federation/agentile/rules/CORE_RULES.md`](https://github.com/CitrateNetwork/citrate-federation/blob/main/agentile/rules/CORE_RULES.md). The 13 non-negotiables across the federation. A local mirror lives at [`rules/CORE_RULES.md`](rules/CORE_RULES.md) for offline reading; the federation copy wins on any drift.
+4. **Federation control plane** — `citrate-federation/agentile/AGENT_ENTRY.md` (maintainers only; private). The active control-plane entry.
+5. **Active federation sprint** — `citrate-federation/agentile/CURRENT.md` (maintainers only; private).
+6. **Core rules** — `citrate-federation/agentile/rules/CORE_RULES.md` (maintainers only; private). The 13 non-negotiables across the federation. A local mirror lives at [`rules/CORE_RULES.md`](rules/CORE_RULES.md) for offline reading; the federation copy wins on any drift.
 7. **Pre-split historical context** — [`citrate-agentile-archive`](https://github.com/CitrateNetwork/citrate-agentile-archive). Read **only** when investigating the May-2026 monorepo split or earlier history.
 8. **Org defaults (SECURITY, CoC, AUDIT_POSTURE)** — [`CitrateNetwork/.github`](https://github.com/CitrateNetwork/.github).
 
@@ -89,14 +89,14 @@ can live here.
 
 ## Cross-repo references
 
-- **Manifest pin**: `manifest.toml` in [`citrate-federation`](https://github.com/CitrateNetwork/citrate-federation) is the canonical truth for which rev of this repo the federation is pinned to.
+- **Manifest pin**: `manifest.toml` in `citrate-federation` (maintainers only; private) is the canonical truth for which rev of this repo the federation is pinned to.
 - **Upstream runtime**: [`citrate-agent-runtime`](https://github.com/CitrateNetwork/citrate-agent-runtime) is the canonical implementation of `citrate-agent-core`. We consume it via Cargo dependency on `agentile_rev = "..."`. See [`planset/.../ALIGNMENT.md`](planset/2026-05-19-nist-sidecar-v1/ALIGNMENT.md) for the crosswalk that prevents duplication.
 - **On-chain contracts**: live in [`citrate-chain`](https://github.com/CitrateNetwork/citrate-chain) (`OrganizationSBT`, `AgentSBT`, `CapsuleRegistry`, `AnchorRegistry`, `BenchmarkRegistry`). nist-agent does not redeploy them; it speaks to them via a chain-agnostic adapter trait.
 - **Org policy**: [`CitrateNetwork/.github`](https://github.com/CitrateNetwork/.github) holds org-wide SECURITY.md / CONTRIBUTING / AUDIT_POSTURE.md.
 
 ## Non-negotiables (highlights from the 13)
 
-See [`citrate-federation/agentile/rules/CORE_RULES.md`](https://github.com/CitrateNetwork/citrate-federation/blob/main/agentile/rules/CORE_RULES.md) for the full text. Highlights particularly load-bearing in this repo:
+See `citrate-federation/agentile/rules/CORE_RULES.md` (maintainers only; private) for the full text. Highlights particularly load-bearing in this repo:
 
 - **Rule 1.** No mocks / stubs / TODOs in production paths. Mocks live behind `#[cfg(test)]` or feature flags only.
 - **Rule 2.** Test count is monotone non-decreasing across a sprint.

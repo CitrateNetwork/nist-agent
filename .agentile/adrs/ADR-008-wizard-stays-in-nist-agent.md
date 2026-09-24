@@ -134,7 +134,7 @@ wiring treatment.
 1. **Plan to migrate `nist-agent-wizard` upstream like the
    others.** Rejected: the upstream `citrate-agent-core` is
    the engine; UI components don't belong there. Other
-   federation crates (citrate-gui-native, citrate-boeing-shell)
+   federation crates (citrate-gui-native, citrate-defense_prime-shell)
    demonstrate the same product/engine split.
 2. **Put the wizard in `citrate-gui-native` instead of
    nist-agent.** Rejected: citrate-gui-native is the

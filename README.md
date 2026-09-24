@@ -82,7 +82,7 @@ sequenced in [`ROADMAP.md`](.agentile/planset/2026-05-19-nist-sidecar-v1/ROADMAP
 
 This repo uses **Agentile** — the federation-wide methodology
 documented at
-[`citrate-federation/agentile/`](https://github.com/CitrateNetwork/citrate-federation/tree/main/agentile)
+`citrate-federation/agentile/` (maintainers only; private)
 and prototyped at
 [`github.com/citratenetwork/agentile`](https://github.com/citratenetwork/agentile).
 The 13 rules are summarized in
@@ -116,5 +116,5 @@ distribution falls under Slint's GPLv3 terms.
 
 ## Custodian
 
-© 2026 Citrate Network Inc. Custody and authorship pipeline
-governed by Mozi Satori LLP (Carpinteria, California).
+© 2026 Citrate Inc. Custody and authorship pipeline
+governed by Citrate Inc.

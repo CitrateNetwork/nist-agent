@@ -115,7 +115,7 @@ Mirrors RFC §1.3 plus a few sidecar-specific carve-outs:
 - **N3.** Persistent cross-session learning that mutates the capability
   surface.
 - **N4.** SVM-native (Solana) skills.
-- **N5.** Multi-tenant cloud hosting operated by Citrate Network Inc.
+- **N5.** Multi-tenant cloud hosting operated by Citrate Inc.
   (Third parties may operate it under the commercial license.)
 - **N-sidecar-1.** **nist-agent does not deploy the on-chain
   contracts.** Those are in `citrate-chain`. nist-agent ships the
@@ -144,7 +144,7 @@ Mirrors RFC §1.3 plus a few sidecar-specific carve-outs:
 - Free-form runtime skill creation by the agent itself.
 - Cross-org agent collaboration outside the cooperative's
   signed-capsule channels.
-- Cloud-hosted multi-tenant deployment operated by Citrate Network Inc.
+- Cloud-hosted multi-tenant deployment operated by Citrate Inc.
 
 ## How "done" is judged for v1.0
 

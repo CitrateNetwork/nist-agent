@@ -122,7 +122,7 @@ gh secret set CHAIN_DEPLOY_KEY \
 
 The `-fed-ro` variant of the runtime key is the federation-scoped
 readonly key; the chain key is shared across runtime, gui-native,
-boeing-shell consumers. Both already exist; they just need to be
+defense_prime-shell consumers. Both already exist; they just need to be
 copied to the new repo as secrets.
 
 ## Next sprint(s)

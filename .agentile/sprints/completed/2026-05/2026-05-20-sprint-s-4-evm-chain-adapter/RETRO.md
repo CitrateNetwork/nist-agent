@@ -69,7 +69,7 @@ real Cargo.toml pin.
 
 - **`citrate-wallet-core` 0.4.0's `RpcClient` and
   `TransactionBuilder` are exactly the surface we needed.** No
-  bridging code, no shimming, no wrapping. The original Boeing
+  bridging code, no shimming, no wrapping. The original defense_prime
   shell sprint (BFR-INT-12b) carved out this exact API months
   ago; we inherited the dividend.
 - **The `trait ChainClient` settled at 5 methods on the first

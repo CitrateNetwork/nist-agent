@@ -26,7 +26,7 @@ resolver = "2"
 [workspace.package]
 version = "0.1.0"
 edition = "2021"
-authors = ["Citrate Network Inc.", "Mozi Satori LLP (custodian)"]
+authors = ["Citrate Inc."]
 license = "BUSL-1.1"
 repository = "https://github.com/CitrateNetwork/nist-agent"
 rust-version = "1.78"

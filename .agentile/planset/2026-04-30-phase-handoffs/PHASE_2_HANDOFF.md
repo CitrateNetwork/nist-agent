@@ -28,13 +28,13 @@ repository.
 ## Where to read first (in order, ~15 minutes)
 
 1. **This file**, end-to-end. It tells you everything.
-2. `/home/saul/Projects/Mozi Group/citrate-old-history/citrate/.agentile/planset/2026-04-30-agentile-skeleton/06_ROLLOUT.md`
+2. `citrate-old-history/citrate/.agentile/planset/2026-04-30-agentile-skeleton/06_ROLLOUT.md`
    — Phase 2 task list (lines containing "### Phase 2 — Templates")
    plus the locked decisions section (lines containing "## Decisions").
-3. `/home/saul/Projects/Mozi Group/agentile/.agentile/AGENT_ENTRY.md`
+3. `agentile/.agentile/AGENT_ENTRY.md`
    — the foundation tier entry point (so you know what you're working
    under).
-4. `/home/saul/Projects/Mozi Group/agentile/.agentile/rules/CORE_RULES.md`
+4. `agentile/.agentile/rules/CORE_RULES.md`
    — the 12 rules that bind your work. Pay particular attention to
    Rule 12 (frontmatter on every doc).
 
@@ -44,11 +44,11 @@ unless you hit a question this handoff doesn't answer.
 ## Where the repos are
 
 - **Source repo** (Citrate, where the planset lives, do NOT modify):
-  `/home/saul/Projects/Mozi Group/citrate-old-history/citrate/`
+  `citrate-old-history/citrate/`
   — On `main` branch. Has the planset under
   `.agentile/planset/2026-04-30-agentile-skeleton/`.
 - **Target repo** (agentile, where you commit your work):
-  `/home/saul/Projects/Mozi Group/agentile/`
+  `agentile/`
   — On `main` branch. Pushes to `github.com/CitrateNetwork/agentile`.
   License is MIT. Owner is Saul Loveman; he's an admin of CitrateNetwork.
 
@@ -116,7 +116,7 @@ fills in.
 | `TLA_SPEC_TEMPLATE.tla` | Bare-bones TLA+ spec template + companion `.cfg` template. With comments pointing at `formal/VERIFICATION_WORKFLOW.md`. |
 
 For each, look at how Citrate uses the equivalent file (under
-`/home/saul/Projects/Mozi Group/citrate-old-history/citrate/.agentile/templates/`
+`citrate-old-history/citrate/.agentile/templates/`
 and `.agentile/sprints/active/2026-04-29-sprint-rm-fl-5-hypothesis-rigs/SPRINT.md`
 for a real recent example). Strip Citrate-specifics; preserve structure.
 
@@ -221,7 +221,7 @@ These are locked. Don't second-guess.
 ## Source paths in Citrate (where to crib templates from)
 
 ```
-/home/saul/Projects/Mozi Group/citrate-old-history/citrate/
+citrate-old-history/citrate/
 ├── .agentile/
 │   ├── templates/                          # Some exist; check first
 │   │   └── (whatever's there)
@@ -292,7 +292,7 @@ applies to templates).
 A: You're authoring a template file, not running TLC. Just author
 the .tla syntax with placeholders and a `.cfg.template` companion.
 The Citrate repo has many `.tla` files at
-`/home/saul/Projects/Mozi Group/citrate-old-history/citrate/citrate_v0.01.1/specs/tla/`
+`citrate-old-history/citrate/citrate_v0.01.1/specs/tla/`
 to reference. Pick a small one, generalize.
 
 **Q: How long should each template be?**

@@ -36,7 +36,7 @@ planset: nist-sidecar-v1
 |---|---|---|
 | (Future) operator deployments on Citrate Mainnet | Binary install | First pilot per overlay class in Phase 2. |
 | (Future) third-party EVM deployments | Binary install | Enabled by S-4 (`trait ChainClient`). |
-| (Future) `citrate-boeing-shell` or other federation agent surfaces | Cargo dep on nist-agent crates | Subject to federation manifest pinning once we publish a crate. |
+| (Future) `citrate-defense_prime-shell` or other federation agent surfaces | Cargo dep on nist-agent crates | Subject to federation manifest pinning once we publish a crate. |
 | (Future) the `citrate-agent-runtime` itself | PRs back upstream | nist-agent's feature crates that get upstreamed (per ALIGNMENT.md exception clause) ultimately *land* in runtime; runtime then becomes a backwards consumer in the sense that it gains nist-agent-authored work. |
 
 ## Cross-repo work that crosses the federation line

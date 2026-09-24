@@ -22,8 +22,7 @@ status: active
 | One-line description | NIST-compliant agent harness — composable sidecar for Citrate Network and EVM chains |
 | Repository | `https://github.com/CitrateNetwork/nist-agent` (TBC at publish) |
 | License | `Apache-2.0` (open-core; commercial license available for FedRAMP package per RFC §8.4) |
-| Initial author | Saul Loveman (Citrate Network Inc.) + Claude (Anthropic) |
-| Custodian | Mozi Satori LLP, Carpinteria, California |
+| Initial author | Saul Loveman (Citrate Inc.) + Claude (Anthropic) |
 | Federation tier | T1 (full external audit required before v1.0.0) |
 
 ## Compliance baselines

@@ -1,11 +1,11 @@
 ---
 created: 2026-05-14T00:00:00Z
 branch: main
-author: Saul Loveman (Citrate Network Inc.) + Claude (Anthropic)
+author: Saul Loveman (Citrate Inc.) + Claude (Anthropic)
 status: active
 rfc: CIT-AGENT-0001
 version: v0.1
-custodian: Mozi Satori LLP, Carpinteria, California
+custodian: Citrate Inc.
 source: RFC-CIT-AGENT-0001-v0.1(1).docx
 ---
 
@@ -19,9 +19,9 @@ Status: v0.1 — Draft for Quorum Review
 
 Date: 2026-05-14
 
-Authors: Saul Loveman (Citrate Network Inc.), with Claude (Anthropic)
+Authors: Saul Loveman (Citrate Inc.), with Claude (Anthropic)
 
-Custodian: Mozi Satori LLP, Carpinteria, California
+Custodian: Citrate Inc.
 
 Compliance Baseline: NIST SP 800-171 + CMMC L3 (CUI/DIB)
 
@@ -492,7 +492,7 @@ doctor produces a signed TOML report at the operator's configured output path, p
 
 # 11. Roadmap
 
-## 11.1 v1.0 — Mainnet-Ready (Target: Q4 2026)
+## 11.1 v1.0 — Mainnet-Ready (Target: Q2 2027)
 
 v1.0 ships the full architecture specified in this document: citrate-agent-core library, citrate-agentd daemon, citrate-agent-cli, citrate-agent-slint app, citrate-agent-wasm publish target, mobile companion (iOS + Android), five-contract on-chain surface, FERPA + HIPAA + CMMC L3 baseline overlay set, Gemma 4 E2B bundled, Trail of Bits audit complete.
 
@@ -508,7 +508,7 @@ Policy-gated subagent delegation introduced. SVM compatibility appendix promoted
 
 - Free-form runtime skill creation by the agent itself.
 - Cross-org agent collaboration outside the cooperative's signed-capsule channels.
-- Cloud-hosted multi-tenant deployment (third parties may offer it under the commercial license; Citrate Network Inc. will not operate it).
+- Cloud-hosted multi-tenant deployment (third parties may offer it under the commercial license; Citrate Inc. will not operate it).
 # 12. Open Questions for Quorum Resolution
 
 The following items remain open after the v0.1 design interview and require resolution before v1.0-rc:
@@ -602,7 +602,7 @@ Informative References
 
 | Tier | Signed By | Trust Implication | Installation Path |
 | --- | --- | --- | --- |
-| bundled | Citrate Network Inc. (canonical publisher key, FIPS HSM) | Maximal trust; safe for any overlay; reviewed and audited by Citrate before publication | Ships with the harness binary; updated via signed release |
+| bundled | Citrate Inc. (canonical publisher key, FIPS HSM) | Maximal trust; safe for any overlay; reviewed and audited by Citrate before publication | Ships with the harness binary; updated via signed release |
 | managed | Org's procurement-chain CA (org SBT controller) | Trusted for the org's policy bundle; subject to org's overlay restrictions | Installed via site mirror or chain pull; HITL approval required |
 | workspace | Operator's local signing key | Trusted only for the operator's agent; cannot enter managed tier without re-signing | Local-only; mandatory dual approval (Operator + Security Officer); never anchored to chain |
 
