@@ -39,14 +39,14 @@ rust-version = "1.78"
 #
 # When the federation bumps this rev (via pin-bump.sh), this line
 # is the single edit point.
-citrate-agent-core = { version = "0.4", git = "ssh://git@github-citrate-agent-runtime/CitrateNetwork/citrate-agent-runtime", rev = "000422aa1fd73a1b969a01dcf2af526652d4d04b" }
+citrate-agent-core = { version = "0.4", git = "ssh://git@github-citrate-agent-runtime/CitrateNetwork/citrate-agent-runtime", rev = "0db3da626962a53c9c3ad63397b19acd4dee8bad" }
 
 # Chain primitives from citrate-chain. Rev MUST match the federation
 # manifest's [repos.citrate-chain].rev (currently
-# 0f2d16b486a9ec1ed8a0394440dac480075d6942). Drift-check enforces
+# f4a07811940a0962325d18e8ba44fea0ff50a3b4). Drift-check enforces
 # this via the [[drift]] entry landed in citrate-federation commit
 # 5759beb.
-citrate-wallet-core = { version = "0.4", git = "ssh://git@github-citrate-chain/CitrateNetwork/citrate-chain", rev = "2d1ca33a9796a615da7eb236ab95c7afb59a41f7" }
+citrate-wallet-core = { version = "0.4", git = "ssh://git@github-citrate-chain/CitrateNetwork/citrate-chain", rev = "f4a07811940a0962325d18e8ba44fea0ff50a3b4" }
 
 # Standard deps mirrored from citrate-agent-runtime so version
 # resolution stays stable. Add to this block instead of crate-local
