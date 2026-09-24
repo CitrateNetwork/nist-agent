@@ -5,7 +5,7 @@ version = "0.1.0"
 edition = "2021"
 publish = false
 authors = ["Citrate Network Inc."]
-license = "Apache-2.0"
+license = "BUSL-1.1"
 # Not a member of the workspace — scripts/release is intentionally
 # standalone so the release pipeline doesn't drag the workspace's
 # heavy dep tree into a tooling crate.

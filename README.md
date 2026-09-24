@@ -100,8 +100,11 @@ Notable rules to be aware of before contributing:
 
 ## License
 
-Source licensed under [Apache-2.0](LICENSE). A commercial license is
-available for the FedRAMP package per RFC §8.4.
+Source-available under the Business Source License 1.1 (see [`LICENSE`](LICENSE));
+converts to Apache-2.0 on the Change Date stated in the license. This is the
+commercial application-layer / core tier of Citrate's open-core model; the
+infrastructure tier is Apache-2.0. Licensor: Citrate Inc. A commercial license is
+also available for the FedRAMP package per RFC §8.4.
 
 The bundled Gemma 4 E2B GGUF model file is distributed under its
 own license alongside the binary as a separately hashable artifact
