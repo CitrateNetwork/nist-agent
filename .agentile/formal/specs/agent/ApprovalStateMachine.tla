@@ -2,7 +2,7 @@
 (***************************************************************************)
 (* cit-agent — Tiered-Risk + Role-Bound Quorum Approval State Machine     *)
 (*                                                                         *)
-(* Normative TLA+ spec for RFC-CIT-AGENT-0001 §5 (Human-in-the-Loop        *)
+(* Normative TLA+ spec for RFC-CIT-AGENT-0001 §5 (Human In Control         *)
 (* Approval) and §9.1 row 1. Models the per-action approval lifecycle:    *)
 (*                                                                         *)
 (*   Proposed -> AwaitingRole_i -> ... -> {Approved | Rejected}           *)

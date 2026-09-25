@@ -33,7 +33,7 @@ jobs:
         run: ./scripts/ci/check_no_unwraps.py
 
   hic-terminology:
-    name: HIC terminology guard (PBA-L8-018)
+    name: HIC terminology guard (public-claims accuracy)
     runs-on: ubuntu-latest
     permissions:
       contents: read

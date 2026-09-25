@@ -10,7 +10,7 @@
 (*      key for its tier (bundled / managed / workspace)                  *)
 (*   2. Cross-validated the WIT interface against the WASM imports vs    *)
 (*      the manifest's [capability] declaration                          *)
-(*   3. Traversed the HITL approval gate at the manifest's risk tier     *)
+(*   3. Traversed the HIC approval gate at the manifest's risk tier      *)
 (*                                                                         *)
 (* RFC §4.5 requires these to be LOAD-TIME invariants, not runtime       *)
 (* guards. No codepath exists by which the capsule reaches `Installed`   *)
@@ -26,7 +26,7 @@
 (*       Installed                                                         *)
 (*     - SignatureBeforeWit: WIT cross-validation only begins after      *)
 (*       manifest signature verification succeeds                          *)
-(*     - WitBeforeApproval: HITL approval only begins after WIT matches  *)
+(*     - WitBeforeApproval: HIC approval only begins after WIT matches   *)
 (*   Liveness:                                                             *)
 (*     - EveryProposedSettles: every Proposed install reaches Installed  *)
 (*       or Rejected                                                       *)
@@ -67,7 +67,7 @@ VARIABLES
     phase,           \* [Capsules -> Phases]
     signedOk,        \* SUBSET Capsules — manifest signature verified
     witMatched,      \* SUBSET Capsules — WIT cross-check passed
-    approved,        \* SUBSET Capsules — HITL approval received
+    approved,        \* SUBSET Capsules: HIC approval received
     callable,        \* SUBSET Capsules — runtime says this capsule may be called
     tierOf           \* [Capsules -> Tiers]
 
@@ -126,7 +126,7 @@ WitFails(c) ==
 
 (***************************************************************************)
 (* SubmitForApproval(c): WIT matched; the install now traverses the      *)
-(* HITL gate per ApprovalStateMachine.                                    *)
+(* HIC gate per ApprovalStateMachine.                                     *)
 (***************************************************************************)
 SubmitForApproval(c) ==
     /\ phase[c] = "WitMatched"
