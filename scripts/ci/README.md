@@ -1,6 +1,6 @@
 # `scripts/ci/` — CI tripwire and ratchet check scripts
 
-> The seven Python scripts that the CI workflows in
+> The eight Python scripts that the CI workflows in
 > `.github/workflows/` invoke. Each is a standalone tool that exits
 > 0 on success and non-zero on a finding. All share a project-root
 > discovery convention (walk upward for `.agentile/`) so they can
@@ -17,6 +17,7 @@
 | `check_spec_ratchet.py` | ratchet | TLA+ spec count >= baseline | 10 |
 | `check_tripwire_ratchet.py` | ratchet | Active tripwire count >= baseline | 6 (spirit) |
 | `check_audit_immutability.py` | tripwire | No modifications to existing files under `.agentile/audits/` | 6 |
+| `check_hic_terminology.py` | tripwire | Markdown prose uses HIC (Human In Control), never the retired loop acronym or phrase (see the script docstring). Exceptions only via `.hic-allowlist` (PBA-L8-018) | owner rule |
 
 A **tripwire** detects a *class* of issue (the bug exists or it doesn't).
 A **ratchet** measures a number against a stored baseline (the count

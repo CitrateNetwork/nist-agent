@@ -32,6 +32,22 @@ jobs:
       - name: Run check_no_unwraps.py
         run: ./scripts/ci/check_no_unwraps.py
 
+  hic-terminology:
+    name: HIC terminology, never HITL (PBA-L8-018)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run check_hic_terminology.py
+        run: |
+          ./scripts/ci/check_hic_terminology.py --self-test
+          ./scripts/ci/check_hic_terminology.py
+
   no-mocks:
     name: No stub/mock types in prod (Rules 2 + 11)
     runs-on: ubuntu-latest
