@@ -53,7 +53,7 @@ without re-architecting the host.
    ops, optional mTLS endpoint for mobile companion.
 2. **`citrate-agent-cli`** — one-shot CLI.
 3. **`citrate-agent-slint`** — desktop operator app: concierge
-   onboarding wizard, HITL approval queue UI, chat surface, capsule
+   onboarding wizard, HIC approval queue UI, chat surface, capsule
    marketplace browser. Bundles Gemma 4 E2B as concierge model.
 4. **`citrate-agent-wasm`** — Component Model publish target for
    embedding in browsers / other hosts.
@@ -68,7 +68,7 @@ without re-architecting the host.
   TLA+ spec, three signing tiers (bundled / managed / workspace).
   Capability enforcement is **load-time** (wasmtime linker), not
   runtime advisory.
-- **Five-role HITL.** Operator, Reviewer, Compliance Officer, Security
+- **Five-role HIC.** Operator, Reviewer, Compliance Officer, Security
   Officer, Auditor — every action passes a tiered-risk + role-bound
   quorum gate. Hardware-backed signing via FIDO2 / PIV-CAC /
   Secure-Enclave-or-TPM. Break-glass path with 72-hour post-hoc

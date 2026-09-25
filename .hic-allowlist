@@ -1,0 +1,4 @@
+# HIC terminology guard allowlist: `path:substring`, one per line (HIC terminology guard, public-claims accuracy).
+# Only code identifiers and immutable dated records belong here.
+# Immutable dated audit record (2026-06-09); historical wording is preserved.
+audits/2026-06-09-followup-remediation-log.md:NIST_AGENT-2026-05-31-001

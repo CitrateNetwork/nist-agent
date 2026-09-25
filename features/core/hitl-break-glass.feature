@@ -13,7 +13,7 @@ Feature: Break-glass emergency authorization path
 
   Scenario: Single-SO break-glass clears the gate immediately
     When SecurityOfficer Dana signs break-glass on a "containment-shutdown" proposal
-    Then the proposal clears the HITL gate at signature count 1
+    Then the proposal clears the HIC gate at signature count 1
     And every approver in the role lattice receives an immediate notification
 
   Scenario: Post-hoc affirmation closes the loop within 72 hours

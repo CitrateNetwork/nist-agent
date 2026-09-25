@@ -39,11 +39,11 @@ streams tokens).
 - Search + filter by overlay certification (so a FERPA-only
   deployment hides capsules without `certified = ["FERPA"]`).
 - Install button on each row routes to the Capsule Inspector
-  pane (S-10b) for the HITL-gated install flow.
+  pane (S-10b) for the HIC-gated install flow.
 - Chat surface: live text input → `Agent::step()` → streamed
   token display. Pauses at every `AgentOutcome::Pending`, shows
   the action proposal inline with the conversation, awaits
-  resume from the HITL queue, continues streaming.
+  resume from the HIC queue, continues streaming.
 - Trajectory export hint surfaced when the operator's overlay
   allows it (Hermes-style training data; tier-critical capsule
   per RFC §12 Q3).

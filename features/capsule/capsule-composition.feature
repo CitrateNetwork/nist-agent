@@ -3,7 +3,7 @@
 Feature: Content-addressed Capsule bundle composition
   As a capsule author
   I want my capability packaged as a single .cps bundle
-  So that distribution, signing, and HITL gating all operate on one indivisible unit
+  So that distribution, signing, and HIC gating all operate on one indivisible unit
 
   Background:
     Given the .cps extension is reserved for capsule archives

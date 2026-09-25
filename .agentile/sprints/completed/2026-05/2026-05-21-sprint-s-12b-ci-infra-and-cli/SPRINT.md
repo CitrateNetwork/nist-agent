@@ -134,7 +134,7 @@ on-prem test per `docs/audit/AIRGAP_TEST.md`.
 - ✅ Test ratchet monotone non-decreasing.
 
 **Carried into S-12c / v1.0-tag.**
-- Full daemon event loop (HITL queue processing, audit anchor
+- Full daemon event loop (HIC queue processing, audit anchor
   cadence, IPC socket).
 - Slint wizard window-up integration (render models exist;
   runtime window not yet).

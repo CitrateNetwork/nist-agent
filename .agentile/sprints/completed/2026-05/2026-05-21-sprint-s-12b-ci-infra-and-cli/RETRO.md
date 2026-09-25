@@ -102,7 +102,7 @@ audit-boundary property paying off operationally.
 
 - **Daemon event loop.** Today's `daemon` subcommand is a
   no-op skeleton. S-12c wires:
-  - HITL queue tokio handles (the render models from S-10b
+  - HIC queue tokio handles (the render models from S-10b
     are already wired; just need the runtime).
   - Audit anchor cadence (PolicyBundle's `anchor_strategy`
     drives nightly Merkle root / per-install events).

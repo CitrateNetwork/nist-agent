@@ -39,7 +39,7 @@ audience: Trail of Bits engagement team + Citrate release engineering
 | S-8 | ✅ | Overlay bundles A (CMMC-L3, FERPA, COPPA, CIPA) | +18 |
 | S-9 | ✅ | Overlay bundles B (HIPAA, FedRAMP High) + audit-sinks WORM | +10 |
 | S-10a | ✅ | Slint concierge wizard render models | +16 |
-| S-10b | ✅ | HITL queue + Capsule Inspector render models + Slint | +11 |
+| S-10b | ✅ | HIC queue + Capsule Inspector render models + Slint | +11 |
 | S-10c | ✅ | Marketplace browser + chat surface render models + Slint | +18 |
 | S-11 | ✅ | Mobile-companion protocol crate (native apps deferred per ADR-010) | +28 |
 | S-12 | ✅ | Release verifier + 6/6 runbooks w/ Rollback (CI/HSM deferred per ADR-011) | +35 |

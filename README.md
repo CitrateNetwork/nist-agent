@@ -28,7 +28,7 @@ A Rust-implemented agent harness that:
   integrity, data-class lattice, capsule install gate, break-glass
   path.
 - Ships a **Slint operator app** with a Gemma 4 E2B bundled concierge
-  for first-run onboarding, HITL approval queue, Capsule Inspector,
+  for first-run onboarding, HIC approval queue, Capsule Inspector,
   marketplace browser.
 
 ## Compliance posture

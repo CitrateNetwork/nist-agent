@@ -33,7 +33,7 @@ tenant deployments are an operator concern and out of scope.
 |         v                                                  |
 |  +---------------+    +-----------------+                 |
 |  | Slint wizard  |    | Mobile pairing  |                 |
-|  | + HITL UI     |    | (Rust render-   |                 |
+|  | + HIC  UI     |    | (Rust render-   |                 |
 |  | (feat-ui)     |    |  model only;    |                 |
 |  +---------------+    |  native apps    |                 |
 |                       |  deferred)      |                 |
@@ -139,7 +139,7 @@ examples + the test suite.
 A non-exhaustive list of surfaces an auditor should poke at to
 confirm the defenses described in [`THREAT_MODEL.md`](THREAT_MODEL.md):
 
-### HITL queue + Capsule Inspector
+### HIC queue + Capsule Inspector
 
 ```sh
 cargo test -p nist-agent-hitl install_gate_blocks_until_every_field_viewed

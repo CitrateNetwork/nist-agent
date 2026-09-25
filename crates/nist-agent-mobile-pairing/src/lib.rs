@@ -4,7 +4,7 @@
 //! This crate owns four pieces:
 //!
 //! - **Pairing** — the state machine an operator walks through to
-//!   pair a phone with the daemon. HITL-gated: a new pairing is
+//!   pair a phone with the daemon. HIC-gated: a new pairing is
 //!   itself a proposal that requires a SecurityOfficer signature
 //!   before transitioning to Active. The persisted record is an
 //!   `AuditRecord`.

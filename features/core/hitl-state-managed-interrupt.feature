@@ -3,7 +3,7 @@
 
 Feature: State-managed interrupt for human approval
   As a harness implementer
-  I want the agent loop to pause and resume around HITL gates
+  I want the agent loop to pause and resume around HIC gates
   So that long-running approvals do not block threads and audits remain deterministic
 
   Background:

@@ -228,7 +228,7 @@ before any inference work begins.
 
 Note: the v1 embedded backend is a smoke-test path (greedy
 decode up to 128 tokens). The full streaming integration with
-the agent loop's HITL gate lands in S-12c.
+the agent loop's HIC gate lands in S-12c.
 
 ## Phase 6 — Install flow refusal
 

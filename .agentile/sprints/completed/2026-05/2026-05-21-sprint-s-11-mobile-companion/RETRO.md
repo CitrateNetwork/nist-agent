@@ -25,7 +25,7 @@ small, focused crate to audit (RFC §11.1).
 The feature scenarios from `surface-mobile-companion.feature`
 pin 1:1 to tests:
 
-- "Pairing is HITL-gated" — `apply_security_officer` refuses
+- "Pairing is HIC-gated" — `apply_security_officer` refuses
   unless state is `Initiated`; the `PairingRecord` is shaped
   for AuditRecord persistence.
 - "Mobile eligibility by overlay" — the table maps to

@@ -41,7 +41,7 @@ product.
 
 Findings the engagement is sized to surface, in priority order:
 
-1. **Quorum-bypass paths in HITL approval.** Any way for an
+1. **Quorum-bypass paths in HIC approval.** Any way for an
    action to reach `Agent::resume()` without the role-bound
    signatures the policy bundle requires.
 2. **Overlay-ratchet bypass.** Any way to remove `CmmcL3` from

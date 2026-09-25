@@ -106,7 +106,7 @@ research yields this.
 ### WP-2.4 — Author `CapsuleInstallGate.tla`
 
 New. Models the four-step install ladder from RFC §7.2: read
-AgentSBT clearance → read capsule reads → check domination → HITL.
+AgentSBT clearance → read capsule reads → check domination → HIC.
 Safety invariant: no capsule reaches `installed` state with reads
 that exceed clearance under the lattice. State bounds: 3 capsules,
 4 clearance levels, 2 chain reachability states (online / cached).

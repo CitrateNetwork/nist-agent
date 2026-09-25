@@ -41,7 +41,7 @@ axes starting S-2 (specs) and S-3 (tests).
   would have drifted from federation conventions.
 - **Crosswalking against the runtime in `ALIGNMENT.md` before
   scoping any sprint** — this caught at least three potential
-  duplications (HITL queue, audit chain, capsule loader) and turned
+  duplications (HIC queue, audit chain, capsule loader) and turned
   them into "consume runtime" rows. Without this, S-4/S-5/S-6 would
   have been ~3× the work.
 - **Full feature inventory in one sprint instead of growing it

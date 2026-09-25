@@ -39,9 +39,9 @@ let bundle = hipaa(OverlayBuilder {
 ## What HIPAA / HITECH adds over the CMMC-L3 baseline
 
 - **PHI quorum escalation.** Any capsule call that reads PHI
-  requires ComplianceOfficer + Operator signatures at the HITL
+  requires ComplianceOfficer + Operator signatures at the HIC
   gate, even at risk.tier = "low". The bundle just declares the
-  overlay; the escalation is enforced at the HITL quorum check
+  overlay; the escalation is enforced at the HIC quorum check
   reading the active overlay set.
 - **Minimum-necessary enforcement.** A PHI-reading capsule's
   manifest declares a `data_class.reads` field-list. The
@@ -84,7 +84,7 @@ final audit export covers the contract's effective period.
   HIPAA rollback affects the entity's compliance posture, not
   just the harness configuration.
 - Un-install PHI-touching capsules through the standard
-  HITL-gated capsule-uninstall flow. The minimum-necessary
+  HIC-gated capsule-uninstall flow. The minimum-necessary
   `data_class.reads` declarations are recorded in the install
   audit; the uninstall audit closes the loop.
 - Export the audit log for the period during which the HIPAA

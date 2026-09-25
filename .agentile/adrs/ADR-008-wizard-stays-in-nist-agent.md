@@ -86,7 +86,7 @@ transitions is S-10b/c follow-up work — the wizard's *logic* is
 complete; its *UI plumbing* is a sketch.
 
 This is deliberate: S-10a's job is to prove the state machine
-is testable + extensible. S-10b lands when the HITL approval
+is testable + extensible. S-10b lands when the HIC approval
 queue UI ships, and the same Slint scaffolding gets the same
 wiring treatment.
 

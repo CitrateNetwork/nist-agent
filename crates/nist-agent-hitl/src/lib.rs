@@ -1,4 +1,4 @@
-//! nist-agent-hitl — operator UI for the HITL approval queue and
+//! nist-agent-hitl, operator UI for the HIC approval queue and
 //! the Capsule Inspector pane per RFC §8.3.
 //!
 //! Headless render models in the lib + an optional Slint UI

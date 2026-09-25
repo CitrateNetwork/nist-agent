@@ -10,8 +10,8 @@
 //!   3. If an action is proposed, the Agent writes a Checkpoint to
 //!      the store and returns `AgentOutcome::Pending`. Control
 //!      returns to the harness, which surfaces the action to the
-//!      HITL queue.
-//!   4. The HITL queue eventually calls `resume(approval_payload)`
+//!      HIC queue.
+//!   4. The HIC queue eventually calls `resume(approval_payload)`
 //!      with the surface's decision. The Agent matches the payload
 //!      to the outstanding checkpoint and returns
 //!      `AgentOutcome::Completed` with the action result, or
@@ -32,7 +32,7 @@ pub enum AgentOutcome {
     Text(String),
 
     /// The agent proposed an action. The Checkpoint is already
-    /// written; the harness MUST route the action through the HITL
+    /// written; the harness MUST route the action through the HIC
     /// queue and call `resume` when the surface returns an
     /// `ApprovalPayload`.
     Pending {
@@ -154,7 +154,7 @@ impl Agent {
 
         // NA2-B-003: an approved payload that carries no signatures
         // proves no authority. The loop does not verify the
-        // signatures' cryptographic content (that is HITL's job), but
+        // signatures' cryptographic content (that is HIC's job), but
         // it refuses to complete on the bare `approved` bool — a
         // fail-open resume is not permitted. The checkpoint is left
         // in place so a properly-signed resume can still arrive.
@@ -335,7 +335,7 @@ mod tests {
         let payload = ApprovalPayload {
             proposal_hash: hash,
             approved: true,
-            signatures: vec![1, 2, 3], // non-empty: HITL collected a signature
+            signatures: vec![1, 2, 3], // non-empty: HIC collected a signature
             expires_at_unix: 1_000,
         };
         match agent.resume(&id, payload, 500).await.expect("resume") {

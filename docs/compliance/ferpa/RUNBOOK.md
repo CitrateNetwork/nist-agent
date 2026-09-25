@@ -95,7 +95,7 @@ workflow per RFC §2.3:
   AU-9(5) dual signature); the operator's SecurityOfficer +
   ComplianceOfficer co-sign.
 - Un-install added FERPA-overlay capsules (e.g. redact-and-attest)
-  through the standard HITL-gated capsule-uninstall flow.
+  through the standard HIC-gated capsule-uninstall flow.
 - Export the audit log for the period during which the FERPA
   bundle applied; archive to the CMMC-L3 baseline 6-year WORM
   retention. The PII-redact capsule's emit log is part of this

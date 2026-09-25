@@ -21,7 +21,7 @@ sprint: S-5
 
 RFC-CIT-AGENT-0001 §3.1 names two of the eight harness subsystems
 as load-bearing: the **Agent Loop** (single-loop, token-by-token
-streaming, state-managed interrupt for HITL) and the **Model
+streaming, state-managed interrupt for HIC) and the **Model
 Resolver** (Ollama / llama.cpp / embedded GGUF, with NIST SI-7
 hash verification). Both are normative-core surface — their
 canonical home is `citrate_agent_core::agent` and
@@ -83,7 +83,7 @@ upstream's `citrate_agent_core::model`.
   `nist-agent-model` for the `ModelBackend` trait.
 - Neither crate depends on `nist-agent-chain` or
   `nist-agent-prelude`. The runtime engine doesn't need to know
-  about the chain in v0.x; the HITL signing path uses the chain
+  about the chain in v0.x; the HIC signing path uses the chain
   only at audit-anchoring time, and that's the harness's job, not
   the agent loop's.
 

@@ -19,8 +19,8 @@ audience: Trail of Bits engagement team
 | Actor | Role | Surface they can reach |
 |---|---|---|
 | `Operator` | Day-to-day user of the harness. Initiates capsule calls. | Slint UI, chat surface, CLI. |
-| `Reviewer` | Approves low/medium-risk capsule calls. | HITL approval queue (desk or mobile). |
-| `ComplianceOfficer` | Co-signs medium/high-risk + audit deletions. | HITL queue, AuditChain. |
+| `Reviewer` | Approves low/medium-risk capsule calls. | HIC approval queue (desk or mobile). |
+| `ComplianceOfficer` | Co-signs medium/high-risk + audit deletions. | HIC queue, AuditChain. |
 | `SecurityOfficer` | Signs policy bundles, mobile pairings, egress directives. | PolicyBundle, pairing flow, egress activation. |
 | `Auditor` | Read-only on the audit chain; SoD-excluded from approvals. | AuditChain reads. |
 | `Adjacent attacker` | Has network access to the daemon but no role binding. | mTLS endpoint, CapsuleRegistry-read interface. |
@@ -42,7 +42,7 @@ audience: Trail of Bits engagement team
 
 ## Load-bearing surfaces — STRIDE per surface
 
-### 1. HITL approval quorum (`crates/nist-agent-hitl` + upstream `ApprovalQueue`)
+### 1. HIC approval quorum (`crates/nist-agent-hitl` + upstream `ApprovalQueue`)
 
 Formal spec: `.agentile/formal/specs/HITLQuorum.tla`.
 
@@ -65,7 +65,7 @@ Formal spec: `.agentile/formal/specs/OverlayRatchet.tla`.
 |---|---|
 | **T**ampering | Operator forces `Overlay::CmmcL3` out of the active set to permit a forbidden action. Defense: `remove_with_workflow` refuses `Overlay::CmmcL3` regardless of workflow proof. |
 | **E**oP | A second PolicyBundle is loaded that *replaces* the active set with a less-restrictive set. Defense: bundle activation runs through `ActiveOverlays::ratchet_into`, which requires every previously-active overlay to remain in the new set OR carry a valid `DecommissioningWorkflow` token. |
-| **R**epudiation | A `OverlayDecommissioned` event is suppressed. Defense: decommissioning workflow is a HITL-gated proposal; the workflow's SHA-256 is itself part of the proof token, so the audit record is content-addressable. |
+| **R**epudiation | A `OverlayDecommissioned` event is suppressed. Defense: decommissioning workflow is an HIC-gated proposal; the workflow's SHA-256 is itself part of the proof token, so the audit record is content-addressable. |
 
 **Where to look hardest:** `ActiveOverlays::ratchet_into`'s edge cases — empty prior-set, prior-set with only `CmmcL3`, workflow-proof-but-wrong-overlay, time-of-check / time-of-use between two concurrent activation attempts.
 
@@ -132,7 +132,7 @@ Maps to RFC §3.3 G1.
 |---|---|
 | **T**ampering | A checkpoint is modified to alter the action proposal between `step` and `resume`. Defense: `Checkpoint::derive_id` is content-addressable over the action; resume against a mismatched id refuses. |
 | **R**epudiation | Agent denies producing a particular action proposal. Defense: checkpoint persists with the full completion text + action. |
-| **E**oP | The model's `<<ACTION ...>>` proposal syntax is forged in a way that bypasses HITL. Defense: `parse_action` is the single entry point; any `AgentOutcome::Pending` writes a checkpoint *before* returning. |
+| **E**oP | The model's `<<ACTION ...>>` proposal syntax is forged in a way that bypasses HIC. Defense: `parse_action` is the single entry point; any `AgentOutcome::Pending` writes a checkpoint *before* returning. |
 
 **Where to look hardest:** the `<<ACTION cap.fn args>>` parser. Anything in the model's free-form completion that contains those bytes becomes a proposal; consider injection where the operator's prompt contains the syntax to confuse the parser, or where the model echoes a prior prompt's syntax.
 

@@ -47,16 +47,16 @@ bundle.bundle_name = "ferpa-coppa".into();
 
 ## What COPPA adds over the CMMC-L3 baseline
 
-- **Parental-consent token required at HITL time** for every
+- **Parental-consent token required at HIC time** for every
   capsule call that reads `COPPA-restricted` data. Without the
   token, the harness refuses with
   `PolicyError::COPPA: parental-consent missing` (S-8b capsule
-  work — for v0.x, the lattice + HITL quorum is in place but
+  work — for v0.x, the lattice + HIC quorum is in place but
   the token verification path lands with the
   parental-consent-verifier capsule).
 - **Verifiable consent** — tokens are signed by an org-specific
   signer whose cert chain is in the operator's trust roots.
-  Token expiration is honored at HITL gate.
+  Token expiration is honored at HIC gate.
 - **Tier escalation** — capsule's declared tier never wins for
   COPPA emits; the bundle's risk-tier map gets the escalation.
 
@@ -93,7 +93,7 @@ the workflow file beyond the formal signature.
   the rollback workflow file beyond the formal signature — COPPA
   decommissioning is consequential.
 - Un-install COPPA-specific capsules (parental-consent-verifier,
-  COPPA-emit-gating) through the standard HITL-gated
+  COPPA-emit-gating) through the standard HIC-gated
   capsule-uninstall flow.
 - Export the audit log for the period during which the COPPA
   bundle applied; archive to CMMC-L3 baseline retention.

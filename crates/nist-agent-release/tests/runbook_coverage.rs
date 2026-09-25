@@ -46,7 +46,7 @@ fn every_runbook_has_a_rollback_section() {
     // RFC §11.1 + dist-overlay-runbooks.feature scenario
     // "Runbooks include rollback procedures": every runbook MUST
     // carry a `## Rollback` section with the three documented
-    // steps (PolicyBundle revert, HITL-gated capsule uninstall,
+    // steps (PolicyBundle revert, HIC-gated capsule uninstall,
     // final audit export).
     let root = repo_root();
     for rel in OVERLAY_RUNBOOKS {
@@ -67,8 +67,8 @@ fn every_runbook_has_a_rollback_section() {
             p.display(),
         );
         assert!(
-            body.to_lowercase().contains("hitl"),
-            "{}: rollback should reference the HITL-gated uninstall step",
+            body.contains("HIC"),
+            "{}: rollback should reference the HIC-gated uninstall step",
             p.display(),
         );
         assert!(

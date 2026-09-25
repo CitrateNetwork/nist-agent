@@ -7,7 +7,7 @@ adr: 009
 sprint: S-10b
 ---
 
-# ADR-009: HITL UI + Capsule Inspector stay in nist-agent permanently
+# ADR-009: HIC UI + Capsule Inspector stay in nist-agent permanently
 
 | Field | Value |
 |---|---|
@@ -23,7 +23,7 @@ ADR-008 closed the question of whether every nist-agent crate
 migrates upstream by establishing that **product UI crates
 stay**. The wizard (`nist-agent-wizard`) was the first such crate.
 
-S-10b adds two more operator-facing surfaces — the HITL approval
+S-10b adds two more operator-facing surfaces — the HIC approval
 queue UI and the Capsule Inspector pane — and consolidates them
 in one crate (`nist-agent-hitl`). This ADR documents the
 placement decision (consistent with ADR-008 + the
@@ -118,7 +118,7 @@ CapsuleInspectorView, the actual binary entry point) is S-10c
    lifecycle and internal primitives; one crate is cleaner
    for v0.x. Split when a third surface forces the
    refactor.
-2. **Put the HITL UI in `citrate-agent-core::hitl::ui`.**
+2. **Put the HIC UI in `citrate-agent-core::hitl::ui`.**
    Rejected per ADR-008 — UI is product-shaped.
 3. **Skip the headless render models; write the UI directly in
    Slint.** Rejected — that ties testability to having a GUI
@@ -128,14 +128,14 @@ CapsuleInspectorView, the actual binary entry point) is S-10c
 ## Reversal conditions
 
 Same as ADR-008's reversal conditions: if a second
-nist-agent-shaped product needs the same HITL surfaces, and the
+nist-agent-shaped product needs the same HIC surfaces, and the
 federation decides on a shared crate, the migration target
 becomes a `citrate-onboarding-kit` or similar. Until then, the
 crate stays here.
 
 ## References
 
-- RFC-CIT-AGENT-0001 §5 (HITL approval model), §8.1 (operator
+- RFC-CIT-AGENT-0001 §5 (HIC approval model), §8.1 (operator
   surfaces), §8.3 (Capsule Inspector).
 - ADR-008 — the wizard's product-UI stays-here decision; this
   ADR is its sibling.

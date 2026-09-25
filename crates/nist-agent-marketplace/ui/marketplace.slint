@@ -158,7 +158,7 @@ export component ChatPane inherits Rectangle {
                 if stream.is-paused : Rectangle {
                     background: #fff0e0;
                     VerticalBox {
-                        Text { text: "Action proposal — awaiting HITL decision"; font-weight: 600; color: #c60; }
+                        Text { text: "Action proposal: awaiting HIC decision"; font-weight: 600; color: #c60; }
                         Text { text: stream.partial-or-action; wrap: word-wrap; }
                         Text { text: "checkpoint: " + stream.checkpoint-id; color: #666; font-size: 12px; }
                     }
@@ -167,7 +167,7 @@ export component ChatPane inherits Rectangle {
         }
         HorizontalBox {
             LineEdit {
-                placeholder-text: input-enabled ? "type a prompt…" : "waiting for streaming / HITL…";
+                placeholder-text: input-enabled ? "type a prompt…" : "waiting for streaming / HIC…";
                 enabled: input-enabled;
                 text <=> root.draft;
             }

@@ -87,7 +87,7 @@ expose the district to ineligibility re-review.
   the workflow file — CIPA rollback exposes the district to
   E-Rate re-review.
 - Un-install the CIPA filter capsule through the standard
-  HITL-gated capsule-uninstall flow. The harness's network
+  HIC-gated capsule-uninstall flow. The harness's network
   posture remains `Disabled` by default after capsule removal.
 - Export the audit log for the period during which the CIPA
   bundle applied; archive to the 5-year CIPA-eligible retention

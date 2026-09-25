@@ -34,7 +34,7 @@ the upstream PR merges; then it deletes.
 
 | RFC subsystem | Runtime status | This-repo action |
 |---|---|---|
-| `agent/core::hitl::*` (HITL queue, 5-role lattice, quorum, SoD, break-glass framework) | **DONE.** `agent/core/src/hitl/*`, TLA-verified `ApprovalStateMachine.tla` (336k states). | **Consume.** Add overlay-specific quorum tests (FERPA/HIPAA/FedRAMP variants) under `tests/`. |
+| `agent/core::hitl::*` (HIC queue, 5-role lattice, quorum, SoD, break-glass framework) | **DONE.** `agent/core/src/hitl/*`, TLA-verified `ApprovalStateMachine.tla` (336k states). | **Consume.** Add overlay-specific quorum tests (FERPA/HIPAA/FedRAMP variants) under `tests/`. |
 | `agent/core::audit::*` (hash-chained log, CBOR canonical, 3 anchor strategies) | **DONE.** `agent/core/src/audit/*`, TLA-verified `AuditChainIntegrity.tla` (35k states). | **Consume.** Add `Sink` impls for NFS/S3 and WORM (RFC §6.2) if runtime doesn't ship them. |
 | `agent/core::capsule::*` (WIT/WASM loader, manifest, 3 signing tiers) | **DONE through CIT-AGENT-3a–3d.** 10 production capsules in `capsules/`. | **Consume.** Author overlay-specific capsules (FERPA redaction, HIPAA de-id, CMMC L3 enumeration). |
 | `agent/core::chain::anchor` (AnchorRegistry adapter) | **DONE.** `agent/core/src/chain/anchor.rs` (CIT-AGENT-6a). | **Generalize.** **Owned here.** Wrap in `trait ChainClient`; default impl wraps runtime's adapter; generic EVM impl is new (S-4). PR adapter trait back upstream if it's clean. |
@@ -44,7 +44,7 @@ the upstream PR merges; then it deletes.
 | `agent/core::model::*` (Ollama / llama.cpp / embedded GGUF resolver) | **SCAFFOLDED.** Empty `mod.rs`. Scheduled CIT-AGENT-3 alongside agent loop. | **Co-execute.** S-5 lands it; PR back upstream. |
 | Five normative TLA+ specs (`ApprovalStateMachine`, `AuditChainIntegrity`, `DataClassLattice`, `CapsuleInstallGate`, `BreakGlassPath`) | **PARTIAL.** ApprovalStateMachine and AuditChainIntegrity verified in runtime; others referenced in module docs but archive-only. | **Owned here.** S-2 ports the verified two locally and authors the remaining three. CI ratchet via `scripts/ci/check_spec_ratchet.py`. |
 | On-chain contracts (`OrganizationSBT`, `AgentSBT`, `CapsuleRegistry`, `AnchorRegistry`, `BenchmarkRegistry`) | **Lives in `citrate-chain`.** Not in runtime. | **Do not duplicate.** nist-agent links to `citrate-chain` for ABIs; ships deployment runbook addenda per overlay. |
-| Slint app (concierge, HITL UI, capsule inspector, marketplace) | **ABSENT in runtime.** Separate UI repo or unbuilt. | **Owned here.** S-10. |
+| Slint app (concierge, HIC UI, capsule inspector, marketplace) | **ABSENT in runtime.** Separate UI repo or unbuilt. | **Owned here.** S-10. |
 | Mobile companion (iOS + Android) | **ABSENT in runtime.** | **Owned here.** S-11. |
 | Distribution (reproducible builds, signed releases, GGUF bundling) | **PARTIAL.** Runtime has `deny.toml`, supply-chain governance, but no signed-release pipeline. | **Owned here.** S-12. |
 | Overlay policy bundles (FERPA, HIPAA, FedRAMP High, etc.) | **ABSENT in runtime.** Policy bundle schema not yet land. | **Owned here.** S-8 + S-9. Depends on S-6 landing the schema. |

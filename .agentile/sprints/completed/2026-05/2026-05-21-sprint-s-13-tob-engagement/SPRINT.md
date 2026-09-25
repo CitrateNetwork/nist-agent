@@ -47,7 +47,7 @@ finding remediation sprints) once findings arrive.
   inventory (13 crates / ~9.6 kLOC Rust) + line counts + dep
   lineage + known sharp edges.
 - `docs/audit/THREAT_MODEL.md` — actor/asset matrix + STRIDE
-  per load-bearing surface (HITL quorum, overlay ratchet,
+  per load-bearing surface (HIC quorum, overlay ratchet,
   mobile pairing, WORM audit, release verifier, egress
   posture, GGUF SI-7, agent loop). Cross-referenced to formal
   specs + feature scenarios.

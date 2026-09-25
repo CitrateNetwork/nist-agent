@@ -1,4 +1,4 @@
-//! Slint UI binding for the HITL surfaces. Feature-gated.
+//! Slint UI binding for the HIC surfaces. Feature-gated.
 //!
 //! `feat-ui` pulls in the slint runtime + the .slint codegen
 //! output via `slint::include_modules!()`. The Rust-side

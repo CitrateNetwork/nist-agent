@@ -1,7 +1,7 @@
 //! Pairing state machine + persistable record.
 //!
-//! Pairing a phone is itself a HITL-gated proposal per the feature
-//! scenario "Pairing is HITL-gated": a SecurityOfficer must sign
+//! Pairing a phone is itself an HIC-gated proposal per the feature
+//! scenario "Pairing is HIC-gated": a SecurityOfficer must sign
 //! before the pairing transitions from `SecurityOfficerSigned` to
 //! `DeviceAttested` and on to `Active`. The persisted
 //! `PairingRecord` is structured as an `AuditRecord` so it lands

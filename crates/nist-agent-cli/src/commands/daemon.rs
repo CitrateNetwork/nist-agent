@@ -33,7 +33,7 @@ pub struct DaemonArgs {
     pub insecure_no_policy: bool,
 
     /// Permit running the real IPC loop from a DEBUG build. Debug
-    /// builds inherit the upstream HITL dev fail-open (self-minted
+    /// builds inherit the upstream HIC dev fail-open (self-minted
     /// signer keys accepted without a roster; NA2-B-023), so a
     /// production run must be a release build unless this flag is
     /// passed. Ignored for `--smoke` (which never serves approvals).
@@ -42,13 +42,13 @@ pub struct DaemonArgs {
 }
 
 pub async fn run(args: DaemonArgs) -> Result<i32> {
-    // NA2-B-023: a debug build inherits the upstream HITL dev
+    // NA2-B-023: a debug build inherits the upstream HIC dev
     // fail-open. Refuse the real run loop unless the operator
     // explicitly acknowledges it. `--smoke` is exempt (it exits
     // before serving anything).
     if cfg!(debug_assertions) && !args.smoke && !args.insecure_dev {
         eprintln!(
-            "refusing to run the daemon from a DEBUG build (HITL dev fail-open, NA2-B-023); \
+            "refusing to run the daemon from a DEBUG build (HIC dev fail-open, NA2-B-023); \
              build with --release or pass --insecure-dev to override"
         );
         return Ok(2);

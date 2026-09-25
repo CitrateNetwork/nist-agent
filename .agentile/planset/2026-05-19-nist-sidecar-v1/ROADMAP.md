@@ -65,7 +65,7 @@ non-Phase-1 overlays (which slip to Phase 1.5 in §11.2).
   five-role enrollment, hardware-key enrollment, overlay selection,
   PolicyBundle authoring. Gemma 4 E2B drives the conversation copy.
   (RFC §8.1, §8.2) — split from original S-10 on 2026-05-21.
-- `S-10b` — Slint HITL queue UI + Capsule Inspector pane. The two
+- `S-10b` — Slint HIC queue UI + Capsule Inspector pane. The two
   surfaces every operator action passes through. (RFC §8.3) —
   split from original S-10.
 - `S-10c` — Slint marketplace browser + chat surface. Browse and
@@ -86,7 +86,7 @@ non-Phase-1 overlays (which slip to Phase 1.5 in §11.2).
   across S-3 → S-13.
 - One pilot operator per overlay class has completed onboarding via
   the Slint concierge end-to-end (capsule install, action proposed,
-  HITL gate cleared, audit anchor written).
+  HIC gate cleared, audit anchor written).
 - Trail of Bits report received; no Tier-1 findings outstanding.
 - Federation manifest pin for `nist-agent` updated to `v1.0.0-rc`.
 

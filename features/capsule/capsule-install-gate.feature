@@ -17,7 +17,7 @@ Feature: Capsule install gate enforces capability and clearance at load
       | 1    | read AgentSBT.clearance from chain (or cached if offline)           |
       | 2    | read capsule manifest data_class.reads                              |
       | 3    | verify clearance dominates every entry in reads under the lattice  |
-      | 4    | route through HITL gate before adding to AgentSBT installed set    |
+      | 4    | route through HIC gate before adding to AgentSBT installed set    |
     And step ordering MUST be preserved (no parallel resolution)
 
   Scenario: A read that exceeds clearance is refused both locally and on-chain

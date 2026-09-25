@@ -7,21 +7,21 @@ sprint: S-10b
 closed: 2026-05-21T00:00:00Z
 ---
 
-# Sprint S-10b: HITL approval queue UI + Capsule Inspector pane
+# Sprint S-10b: HIC approval queue UI + Capsule Inspector pane
 
 ## Sprint Metadata
 
 | Field | Value |
 |---|---|
 | **Sprint ID** | `S-10b` |
-| **Sprint Name** | HITL approval queue UI + Capsule Inspector pane (render models + Slint scaffold) |
+| **Sprint Name** | HIC approval queue UI + Capsule Inspector pane (render models + Slint scaffold) |
 | **Goal** | Land `crates/nist-agent-hitl` per RFC §8.3: render models for the approval queue and Capsule Inspector + Slint UI scaffold + the scroll-tracking install gate. Headless models tested in CI; UI compiles behind `feat-ui`. |
 | **Branch** | `feat/s-10b-hitl-ui` |
 | **Start Date** | 2026-05-21 |
 | **End Date** | 2026-05-21 |
 | **Status** | `COMPLETE` |
 | **Planset** | [`../../planset/2026-05-19-nist-sidecar-v1/OVERVIEW.md`](../../planset/2026-05-19-nist-sidecar-v1/OVERVIEW.md) |
-| **Predecessors** | S-10a (Slint scaffold pattern + ADR-008), S-5 (Agent loop + ToolCall), upstream HITL queue |
+| **Predecessors** | S-10a (Slint scaffold pattern + ADR-008), S-5 (Agent loop + ToolCall), upstream HIC queue |
 
 ## Why this sprint
 
@@ -46,7 +46,7 @@ but no approver can act on it.
     + `CapsuleInspectorPane`; `src/ui.rs` converts render
     models to Slint visual structs.
   - `HitlUiError` typed errors.
-- ADR-009: HITL UI stays in nist-agent permanently (sibling of
+- ADR-009: HIC UI stays in nist-agent permanently (sibling of
   ADR-008's wizard decision).
 - Test count: 110 → 121 (+11).
 
@@ -99,7 +99,7 @@ render models to Slint visual structs (`ApprovalRowVisual`,
 
 ### WP-10b.4 — ADR-009 (DONE)
 
-Mirrors ADR-008's decision; HITL UI stays permanently.
+Mirrors ADR-008's decision; HIC UI stays permanently.
 
 ### WP-10b.5 — Wire wizard's deferred callbacks (DEFERRED to S-10c)
 

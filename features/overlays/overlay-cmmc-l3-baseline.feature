@@ -12,7 +12,7 @@ Feature: CMMC Level 3 baseline overlay
   Scenario: AC-3(2) dual authorization fires on every privileged command
     Given a capsule with risk.tier ≥ "medium"
     When a privileged action is proposed
-    Then the HITL quorum requires at least two distinct authorized identities
+    Then the HIC quorum requires at least two distinct authorized identities
 
   Scenario: AU-9(5) dual authorization protects audit-log modifications
     When deletion of an expired AuditRecord is attempted

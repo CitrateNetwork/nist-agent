@@ -114,7 +114,7 @@ the architecture composes.
 
 - **`citrate-agent daemon --reload`** for hot PolicyBundle
   reload without restart. Not v1.0; nice-to-have for pilots.
-- **`citrate-agent queue` subcommand** that lists pending HITL
+- **`citrate-agent queue` subcommand** that lists pending HIC
   proposals via IPC. The `IpcRequest::QueueDepth` shape
   already supports it; just needs a new subcommand wrapper +
   a richer queue-list response variant.

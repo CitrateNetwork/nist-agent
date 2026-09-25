@@ -97,7 +97,7 @@ Each calls `cmmc_l3_baseline` then `overlays.add(Overlay::X)` and
 sets a descriptive `bundle_name`. RFC-§2.3-prescribed posture
 deltas (mobile signing TTL, ComplianceOfficer-mandatory emit,
 parental-consent gating, CIPA content filter routing) are
-enforced at the HITL gate and capsule level — the bundle just
+enforced at the HIC gate and capsule level — the bundle just
 declares the overlay set.
 
 ### WP-8.3 — Retention floor table (DONE)
