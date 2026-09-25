@@ -156,6 +156,7 @@ mod tests {
 
     fn pv(name: &str, risk: &str) -> PendingView {
         PendingView {
+            id: format!("call-{name}"),
             name: name.into(),
             description: format!("desc for {name}"),
             risk_level: risk.into(),
