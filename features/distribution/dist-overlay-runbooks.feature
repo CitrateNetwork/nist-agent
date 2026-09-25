@@ -31,7 +31,7 @@ Feature: Per-overlay deployment runbooks
     Then each runbook includes a "Rollback" section with:
       | step                                              |
       | revert PolicyBundle (record the AuditRecord)      |
-      | un-install added capsules (HITL-gated)            |
+      | un-install added capsules (HIC-gated)            |
       | final audit export of the period                  |
 
 # Sprint: S-12 distribution-and-runbooks

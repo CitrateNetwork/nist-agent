@@ -11,7 +11,7 @@
 //!    `AgentOutcome::Pending` with the action and a checkpoint id.
 //!    The chat pane displays the proposal inline (so the operator
 //!    sees context for why they're being asked to sign) and waits
-//!    for the HITL queue (S-10b) to return a decision.
+//!    for the HIC queue (S-10b) to return a decision.
 //! 3. **Resumed.** The queue returned a decision; the harness calls
 //!    `Agent::resume(...)`. The chat pane reads either `Completed`
 //!    or `Rejected` and continues from there.
@@ -60,7 +60,7 @@ pub enum ChatStreamState {
     Streaming { partial: String },
     /// The model emitted `<<ACTION ...>>` — the harness wrote a
     /// checkpoint, returned `Pending`, and routed the action to the
-    /// HITL queue. The chat surface displays the proposal inline
+    /// HIC queue. The chat surface displays the proposal inline
     /// and disables further operator input until the queue returns.
     PausedAtAction {
         checkpoint_id: String,
@@ -73,7 +73,7 @@ pub enum ChatStreamState {
 pub enum ChatAction {
     /// Send a fresh operator prompt to `Agent::step()`.
     Submit { text: String },
-    /// HITL queue returned an approval payload — harness should
+    /// HIC queue returned an approval payload, harness should
     /// call `Agent::resume(checkpoint_id, payload)`. The chat
     /// surface forwards the queue's decision rather than producing
     /// the payload itself; this variant is the UI's "go ahead"

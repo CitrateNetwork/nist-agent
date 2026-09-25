@@ -13,11 +13,11 @@ Feature: citrate-agent-cli — one-shot command-line surface
     Then exactly one Proposal AuditRecord is appended
     And the process exits 0 if approved, 2 if rejected, 3 if timeout
 
-  Scenario: The CLI surface enforces the HITL gate just like Slint
+  Scenario: The CLI surface enforces the HIC gate just like Slint
     Given a tier-high action is proposed
     When the CLI runs without `--ci-no-tty`
     Then approval flows are prompted interactively
-    With `--ci-no-tty`, the CLI exits 4 ("HITL required, no TTY available")
+    With `--ci-no-tty`, the CLI exits 4 ("HIC approval required, no TTY available")
 
   Scenario: Doctor is a CLI subcommand
     When `citrate-agent-cli doctor` runs

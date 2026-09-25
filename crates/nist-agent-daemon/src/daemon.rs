@@ -60,7 +60,7 @@ pub struct DaemonState {
     /// arrives once the binding upstream goes through the
     /// federation manifest bump; today the field is operator-
     /// driven via `Daemon::set_queue_depth` (e.g. test hooks +
-    /// the future HITL wiring).
+    /// the future HIC wiring).
     pub queue_depth: Mutex<usize>,
 }
 
@@ -171,7 +171,7 @@ impl Daemon {
         Arc::clone(&self.state)
     }
 
-    /// Set the queue-depth observation. The future HITL wiring
+    /// Set the queue-depth observation. The future HIC wiring
     /// drives this from `ApprovalQueue::pending().len()`; today
     /// it's exposed so tests + the CLI can poke a value.
     pub async fn set_queue_depth(&self, depth: usize) {

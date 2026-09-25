@@ -9,7 +9,7 @@ Feature: Mobile companion — out-of-band signing surface
     Given the mobile app is paired with the daemon via mTLS over the operator's network
     And the active PolicyBundle declares per-overlay mobile signing eligibility
 
-  Scenario: Pairing is HITL-gated
+  Scenario: Pairing is HIC-gated
     When the operator initiates a new pairing
     Then the pairing requires SecurityOfficer signature
     And the pairing record is an AuditRecord

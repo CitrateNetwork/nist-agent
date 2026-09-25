@@ -1,5 +1,5 @@
 //! `Action` and `ApprovalPayload` — the wire shapes between the
-//! agent loop and the HITL approval surface.
+//! agent loop and the HIC approval surface.
 //!
 //! The agent loop never executes actions directly. It proposes
 //! them; the operator's surface (Slint, CLI, daemon RPC, mobile)
@@ -24,7 +24,7 @@ pub struct Action {
     /// SHA-256 over the deterministic length-prefixed encoding of
     /// {capsule, function, args}: each field is prefixed with its
     /// byte length as a u64 big-endian word and concatenated (see
-    /// [`Action::compute_hash`]). The HITL gate signs this hash;
+    /// [`Action::compute_hash`]). The HIC gate signs this hash;
     /// the audit chain records it. Determinism property: same
     /// inputs → same hash, always. Any layer recomputing this
     /// hash MUST use the same length-prefixed scheme.
@@ -44,13 +44,13 @@ pub struct ApprovalPayload {
     /// Rejection is also a valid resume signal — the loop emits a
     /// rejection audit record and returns control without executing.
     pub approved: bool,
-    /// Signatures collected by the surface. The HITL quorum check
+    /// Signatures collected by the surface. The HIC quorum check
     /// in citrate-agent-core's `ApprovalQueue` validates whether
     /// this set satisfies the action's required-roles multiset.
     /// The loop does not verify their cryptographic content, but it
     /// DOES refuse to resume an approved payload that carries none
     /// (NA2-B-003) — a bare `approved: true` proves no authority.
-    pub signatures: Vec<u8>, // opaque to the loop; HITL verifies
+    pub signatures: Vec<u8>, // opaque to the loop; HIC verifies
     /// Unix-epoch seconds after which this approval is no longer
     /// valid (NA2-B-008). Enforced in [`crate::agent::Agent::resume`]
     /// against the caller-supplied `now`. Defaults to `0` (already

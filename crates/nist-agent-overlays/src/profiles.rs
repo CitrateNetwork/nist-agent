@@ -76,7 +76,7 @@ pub fn cmmc_l3_baseline(opts: OverlayBuilder) -> PolicyBundle {
 ///
 /// Per `features/overlays/overlay-ferpa.feature`:
 ///   - ComplianceOfficer signature required before any
-///     FERPA-restricted emit (enforced at HITL gate, declared in
+///     FERPA-restricted emit (enforced at HIC gate, declared in
 ///     bundle by overlay presence)
 ///   - Mobile signing permitted with 1-hour TTL (allowed because
 ///     `Overlay::Ferpa.forbids_mobile_signing()` returns false)
@@ -95,7 +95,7 @@ pub fn ferpa(opts: OverlayBuilder) -> PolicyBundle {
 ///
 /// Per `features/overlays/overlay-coppa.feature`:
 ///   - Capsule reads of COPPA-restricted data require a verifiable
-///     parental-consent token at HITL time
+///     parental-consent token at HIC time
 ///   - Emissions involving COPPA data are tier-high regardless of
 ///     the capsule's declared tier (enforced via risk_tier_map
 ///     escalation — populated by the caller per their capsule set)
@@ -131,7 +131,7 @@ pub fn cipa(opts: OverlayBuilder) -> PolicyBundle {
 ///
 /// Per `features/overlays/overlay-hipaa.feature`:
 ///   - PHI reads require ComplianceOfficer + Operator quorum even
-///     at risk.tier "low" (escalation enforced at HITL gate; the
+///     at risk.tier "low" (escalation enforced at HIC gate; the
 ///     bundle just declares the overlay)
 ///   - Minimum-necessary policy violations are rejected at the
 ///     capsule call site (capsule-level enforcement)
@@ -157,7 +157,7 @@ pub fn hipaa(opts: OverlayBuilder) -> PolicyBundle {
 ///
 /// Per `features/overlays/overlay-fedramp-high.feature`:
 ///   - FIDO2 signatures rejected; PIV-CAC required (enforced at
-///     HITL signing-surface check — the policy bundle's
+///     HIC signing-surface check, the policy bundle's
 ///     `egress_posture` doesn't carry this; the
 ///     `Overlay::FedrampHigh.forbids_mobile_signing()` predicate
 ///     drives the enforcement)

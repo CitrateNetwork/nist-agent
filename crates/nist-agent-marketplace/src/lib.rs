@@ -12,12 +12,12 @@
 //!   are filtered by the active overlay set so a FERPA-only
 //!   deployment never sees ITAR-only capsules. The Install button
 //!   on a row hands the manifest off to the Capsule Inspector pane
-//!   (S-10b) which is the load-bearing HITL gate.
+//!   (S-10b) which is the load-bearing HIC gate.
 //!
 //! - **Chat** — interactive input that drives `Agent::step()`. The
 //!   render model collects assistant tokens as they stream, pauses
 //!   when the agent returns `AgentOutcome::Pending` (shows the
-//!   action proposal inline), and resumes after the HITL queue
+//!   action proposal inline), and resumes after the HIC queue
 //!   returns a decision. Trajectory export hint surfaces only
 //!   when the operator's overlay allows it (RFC §12 Q3).
 //!

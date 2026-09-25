@@ -31,7 +31,7 @@ Feature: Single-loop agent core with state-managed interrupt
     And the resumed agent produces the same first action it would have produced
     And both the proposal hash 0xPP and the resumption hash 0xRR are recorded in the AuditChain
 
-  Scenario: Loop refuses to execute a side effect without HITL approval
+  Scenario: Loop refuses to execute a side effect without HIC approval
     Given a proposal exists in ApprovalQueue with no signatures
     When some code path attempts to call capsule.execute() directly
     Then the call is refused at compile-time or with a typed runtime error

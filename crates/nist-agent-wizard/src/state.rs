@@ -22,7 +22,7 @@ pub struct RoleAssignment {
 
 /// One hardware key enrolled for an identity. Future S-11 will
 /// add device-attestation chains; for v0.x the operator types in
-/// the public-key fingerprint they'll use during HITL signing.
+/// the public-key fingerprint they'll use during HIC signing.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct HardwareKey {
     /// Role the key belongs to.

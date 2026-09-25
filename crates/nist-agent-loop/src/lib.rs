@@ -7,7 +7,7 @@
 //!    (CLI, daemon, WASM host, Slint app). No per-surface forks.
 //! 2. **Token-by-token streaming.** Output flows to the surface as
 //!    the model produces it.
-//! 3. **State-managed interrupt for HITL.** When the agent proposes
+//! 3. **State-managed interrupt for HIC.** When the agent proposes
 //!    an `Action` (a side-effecting call), the loop persists the
 //!    full proposal context to the operator-configured
 //!    `CheckpointStore`, returns control, and waits to be resumed

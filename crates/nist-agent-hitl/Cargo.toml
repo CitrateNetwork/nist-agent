@@ -1,7 +1,7 @@
 [package]
 name = "nist-agent-hitl"
 publish = false  # internal workspace crate; never published to crates.io
-description = "HITL approval queue render models + Capsule Inspector pane per RFC §8.3. Headless typed view models drive the Slint UI (feat-ui) and a future CLI surface."
+description = "HIC approval queue render models + Capsule Inspector pane per RFC §8.3. Headless typed view models drive the Slint UI (feat-ui) and a future CLI surface."
 version.workspace = true
 edition.workspace = true
 authors.workspace = true

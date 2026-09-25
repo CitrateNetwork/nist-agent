@@ -12,7 +12,7 @@ pub enum AgentLoopError {
     /// (Slint, CLI, daemon RPC) did not resume within the operator-
     /// configured deadline. Causes the loop to abort the proposal,
     /// not the agent (per RFC §5.4 — the interrupt is recoverable).
-    #[error("HITL timeout after {0:?}")]
+    #[error("HIC approval timeout after {0:?}")]
     HitlTimeout(std::time::Duration),
 
     /// Checkpoint persistence failed. The loop refuses to propose

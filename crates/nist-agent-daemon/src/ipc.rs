@@ -9,7 +9,7 @@
 //! Today's request/response surface is intentionally small:
 //!
 //! - `Status` → human-readable banner + protocol version.
-//! - `QueueDepth` → number of pending HITL approvals.
+//! - `QueueDepth` → number of pending HIC approvals.
 //! - `RecentAudit` → last N audit records' summaries.
 //! - `Shutdown` → graceful shutdown (reserved; not yet wired to
 //!   the harness's signal handler).
@@ -30,7 +30,7 @@ pub const IPC_PROTOCOL_VERSION: &str = "1.0";
 pub enum IpcRequest {
     /// Identity readout + protocol version.
     Status,
-    /// Current HITL approval queue depth.
+    /// Current HIC approval queue depth.
     QueueDepth,
     /// Last `count` audit records' summaries.
     RecentAudit {
