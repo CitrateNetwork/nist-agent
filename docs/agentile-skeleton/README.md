@@ -1,10 +1,3 @@
----
-created: 2026-05-20T00:00:00Z
-branch: main
-author: Saul Loveman + Claude Opus 4.7 (1M context)
-status: active
----
-
 # agentile-skeleton — upstream reference
 
 The files in this directory describe the upstream **agentile

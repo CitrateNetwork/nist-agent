@@ -1,10 +1,3 @@
----
-created: 2026-05-20T00:00:00Z
-branch: main
-author: Saul Loveman + Claude Opus 4.7 (1M context)
-status: active
----
-
 # features/ — Gherkin BDD Inventory
 
 > One `.feature` file per RFC-CIT-AGENT-0001 normative section. These
