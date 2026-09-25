@@ -33,14 +33,14 @@ at load time, and maintains a hash-chained, signed audit log.
 
 | Capability | Status | Notes |
 |---|---|---|
-| Five-role HITL approval quorum | ✅ **Real & tested** | Separation-of-duties, dedup, self-approval all enforced at the policy seam |
+| Five-role HIC approval quorum | ✅ **Real & tested** | Separation-of-duties, dedup, self-approval all enforced at the policy seam |
 | Hash-chained signed audit log | ✅ **Real & tested** | Four storage backends; tamper-evident; verifiable replay |
 | On-chain audit anchoring | ✅ **Real** (testnet) | Anchors commitments only — no operator content ever reaches the chain. Citrate L1 (chain 40204) or local Anvil |
 | Signed Capsule dispatch (WASM) | ✅ **Real & tested** | Manifest enforced at the wasmtime linker; capability enforcement is load-time, not advisory |
 | Doctor pre-flight checks (11) | ✅ **Real & tested** | Includes model-hash verification (SI-7) |
 | Six compliance overlay bundles | ✅ **Real** | Each with a signed release runbook + rollback section |
 | Five normative TLA+ specifications | ✅ **Verified in CI** | Approval state machine, audit-chain integrity, data-class lattice, capsule install gate, break-glass path |
-| Slint operator app (concierge, HITL queue, Capsule Inspector, marketplace) | ✅ **Real**, 🟡 **unsigned** | The CLI is signed; the desktop app ships unsigned in this RC — see "Previews" |
+| Slint operator app (concierge, HIC queue, Capsule Inspector, marketplace) | ✅ **Real**, 🟡 **unsigned** | The CLI is signed; the desktop app ships unsigned in this RC — see "Previews" |
 | Autonomous agent loop (L0 chat) | 🟡 **Preview** | Runs a **local-model fallback**, clearly labelled. Real agent orchestration lands in v1.0 (upstream `CIT-AGENT-3`) |
 | Mobile companion | 🟡 **Protocol only** | Render-model is real; native iOS/Android apps deferred to v1.1+ |
 | External Tier-1 audit (Trail of Bits) | 🟡 **In progress** | Audit packet delivered; remediation track active. No Tier-1 findings outstanding as of this RC |
@@ -69,7 +69,7 @@ These are the surfaces that are real and where your input is most valuable:
 ## What is a preview — please don't file these as defects
 
 - **L0 chat runs a local-model fallback**, not the production agent loop. Use it
-  to exercise the supervised HITL path, not to evaluate autonomous-agent quality.
+  to exercise the supervised HIC path, not to evaluate autonomous-agent quality.
   (Real orchestration arrives in v1.0 with upstream `CIT-AGENT-3`.)
 - **The Slint desktop app is unsigned** in this RC. Your OS may warn on launch.
   The CLI daemon is signed and is the recommended interface for serious

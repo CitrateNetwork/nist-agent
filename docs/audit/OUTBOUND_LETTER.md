@@ -40,7 +40,7 @@ availability to scope the engagement.
 `nist-agent` is a composable sidecar — a Rust workspace that
 sits next to organizations' existing infrastructure and gates
 every agent action through a cryptographically-signed, tiered-
-risk, role-bound HITL quorum. It defaults to air-gapped
+risk, role-bound HIC quorum. It defaults to air-gapped
 operation; it anchors tamper-evident audit state on Citrate L1
 (or any EVM-compatible chain via a generic adapter trait); it
 ships per-overlay policy bundles for NIST SP 800-171 / CMMC L3
@@ -52,7 +52,7 @@ The sidecar is the *consumer* of an upstream agent engine
 lineage and is out of scope for this engagement. We're asking
 you to look at the sidecar layer: ~9.6 kLOC of Rust across 13
 workspace crates, with a focused load-bearing surface
-(release verifier, HITL queue, overlay activation ratchet,
+(release verifier, HIC queue, overlay activation ratchet,
 mobile-companion pairing, WORM audit sink, agent loop).
 
 ### Why we think it's a fit

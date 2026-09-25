@@ -114,7 +114,7 @@ The set of sprint stubs created in `sprints/backlog/` during S-1 close:
 | S-8 | overlay-bundles-a | CMMC L3, FERPA, COPPA, CIPA |
 | S-9 | overlay-bundles-b | HIPAA, HITECH, FedRAMP High; WORM + NFS/S3 sinks |
 | S-10a | slint-concierge-wizard | first-run wizard (org identity, roles, hardware keys, overlay selection, signed PolicyBundle) |
-| S-10b | slint-hitl-and-inspector | HITL approval queue UI + Capsule Inspector pane |
+| S-10b | slint-hitl-and-inspector | HIC approval queue UI + Capsule Inspector pane |
 | S-10c | slint-marketplace-and-chat | capsule marketplace browser + chat surface |
 | S-11 | mobile-companion | iOS + Android signing surface |
 | S-12 | distribution-and-runbooks | reproducible builds, signed releases, GGUF bundle, runbooks |

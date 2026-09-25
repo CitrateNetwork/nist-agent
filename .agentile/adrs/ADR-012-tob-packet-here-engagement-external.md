@@ -60,7 +60,7 @@ In this repo:
   deferred CI workflow + HSM ceremony), file inventory + line
   counts so TOB can size the engagement.
 - `docs/audit/THREAT_MODEL.md` — STRIDE / actor-asset crosswalk
-  for the load-bearing surfaces: HITL approval queue, overlay
+  for the load-bearing surfaces: HIC approval queue, overlay
   activation ratchet, mobile-companion pairing, release
   verifier, audit-sink WORM guarantee, agent loop.
 - `docs/audit/DEPLOYMENT.md` — how to stand up a reference

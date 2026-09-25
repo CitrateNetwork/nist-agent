@@ -78,7 +78,7 @@ Citrate Agent v1.0 SHALL satisfy the following goals:
 - G4 Produce auditor-ready evidence by construction, not by retrofit. A nightly pre-flight check (“doctor”) and an audit-time grader produce signed reports that map directly onto NIST 800-171 / CMMC L3 assessment objectives.
 - G5 Compose as a library, deploy as a daemon, embed as a WASM component. The Citrate node embeds the harness with no IPC overhead; standalone operators run a daemon with mTLS; future browser and embedded targets compile to the Component Model directly.
 - G6 Anchor optionally and minimally to the Citrate L1. On-chain footprint is operator-selectable across three strategies. No CUI, PHI, FERPA-protected, ITAR-controlled, or other regulated content ever touches the chain — only commits and Merkle roots.
-- G7 Verify, do not assume. Safety-critical control flow (the HITL approval state machine, the audit chain integrity property, the data-class lattice, the capsule install gate, the break-glass path) is formally specified in TLA+ and model-checked in CI as a BLOCKER ratchet per Agentile rule 10.
+- G7 Verify, do not assume. Safety-critical control flow (the HIC approval state machine, the audit chain integrity property, the data-class lattice, the capsule install gate, the break-glass path) is formally specified in TLA+ and model-checked in CI as a BLOCKER ratchet per Agentile rule 10.
 ## 1.3 Non-Goals
 
 The following are explicitly out of scope for v1.0 and SHALL NOT be implemented:
@@ -112,7 +112,7 @@ From OpenClaw, Citrate Agent consciously diverges on:
 
 - TypeScript implementation — replaced with Rust for the reasons above.
 - Channel multiplicity — OpenClaw fans out across 20+ messaging platforms; cit-agent's surfaces are four (Slint, CLI, local web UI, mobile companion), all driving the same local Approval Service.
-- Plugin auto-installation — cit-agent capsule installation requires HITL approval. No silent install paths exist.
+- Plugin auto-installation — cit-agent capsule installation requires HIC approval. No silent install paths exist.
 # 2. Compliance Mapping
 
 ## 2.1 Baseline
@@ -155,7 +155,7 @@ Citrate Agent decomposes into seven major subsystems plus the on-chain registry 
 |                       citrate-agent-core  (Rust library)             |
 |                                                                      |
 |   +-------------+ +------------+ +-------------+ +----------------+  |
-|   | Agent Loop  | | Policy Eng | | HITL Queue  | | Audit Chain    |  |
+|   | Agent Loop  | | Policy Eng | | HIC Queue   | | Audit Chain    |  |
 |   | (single)    | | + Data     | | + State Mgr | | (hash-chained, |  |
 |   |             | |   Class    | | + Approval  | |  per-record    |  |
 |   |             | |   Lattice  | |   Signing   | |  signed)       |  |
@@ -184,7 +184,7 @@ Citrate Agent decomposes into seven major subsystems plus the on-chain registry 
 citrate-agent-core is a Rust library crate (cdylib + rlib) implementing every load-bearing element of the harness. It exposes:
 
 - Agent — the single agent type, parameterized by a Model trait, a Policy, and an AuditSink. Driven by step() in a token-by-token streaming loop.
-- Capsule — the type representing a loaded, signature-verified capsule. Capsule::call(...) returns a Future that traverses the HITL gate before executing the underlying WASM.
+- Capsule — the type representing a loaded, signature-verified capsule. Capsule::call(...) returns a Future that traverses the HIC gate before executing the underlying WASM.
 - PolicyBundle — a signed, versioned configuration object containing risk-tier mappings, role lattice, overlay activations, anchor strategy, and egress posture.
 - ApprovalQueue — the local state-managed interrupt store. Persists pending actions to operator-configured storage; surfaces them to the four surfaces; resumes the agent loop on approval.
 - AuditChain — append-only hash-chained record store. Every entry: { previous_hash, payload, signatures[], anchor_root? }.
@@ -208,7 +208,7 @@ Air-gap mode is the assumed baseline. Operators in connected environments config
 
 A Capsule is the unified representation of a capability and its procedural rules of engagement, packaged as a single content-addressed, cryptographically signed unit. Capsules are the only mechanism by which the agent can perform actions that have side effects.
 
-Capsules MUST be the unit of distribution, the unit of signing, the unit of capability declaration, and the unit of HITL gating. There SHALL be no out-of-band mechanism by which an agent gains capability.
+Capsules MUST be the unit of distribution, the unit of signing, the unit of capability declaration, and the unit of HIC gating. There SHALL be no out-of-band mechanism by which an agent gains capability.
 
 ## 4.2 Capsule Composition
 
@@ -284,7 +284,7 @@ The harness MUST treat capability enforcement as a load-time invariant, not a ru
 - WIT interface MUST match the declared capability set; mismatches fail load with a typed error.
 - wasmtime engine MUST be configured per-capsule with a host functions table built from the manifest, not from a default table that is then filtered.
 - The capsule's exported functions MUST be called only with arguments whose data_class is dominated by the operator's clearance level and the capsule's declared reads.
-# 5. Human-in-the-Loop Approval
+# 5. Human In Control (HIC) Approval
 
 ## 5.1 Approval Model
 
@@ -308,7 +308,7 @@ Citrate Agent defines a five-role minimum lattice. Operators MAY define addition
 
 ## 5.4 State-Managed Interrupt
 
-When the agent loop encounters an action that requires HITL, it does not block the thread or busy-wait. The loop persists the full action context — the proposed call, its arguments, the capsule context, the agent's local state, the inputs that led to the proposal — to the operator-configured Approval Queue storage, returns control to the harness, and surfaces the pending approval to all configured surfaces (Slint, CLI, web, mobile).
+When the agent loop encounters an action that requires HIC approval, it does not block the thread or busy-wait. The loop persists the full action context — the proposed call, its arguments, the capsule context, the agent's local state, the inputs that led to the proposal — to the operator-configured Approval Queue storage, returns control to the harness, and surfaces the pending approval to all configured surfaces (Slint, CLI, web, mobile).
 
 When the approval (or rejection) returns, the harness resumes the agent loop from the checkpoint with the approver's decision and signatures wired into the action's audit record. The resumed agent does not re-plan from scratch; it continues exactly from the proposal point. This is the LangGraph-style state-managed interrupt pattern, made cryptographically auditable.
 
@@ -399,7 +399,7 @@ The AgentSBT's clearance field is the on-chain anchor for the data-class lattice
 - Step 1. The harness reads the AgentSBT clearance from chain (or cached if anchor strategy is offline).
 - Step 2. The harness reads the capsule manifest's data_class.reads from CapsuleRegistry.
 - Step 3. If clearance does not dominate every entry in reads under the lattice ordering, the install is refused — both on-chain and locally.
-- Step 4. If clearance does dominate, the install proceeds through the standard HITL gate before being added to AgentSBT's installed-capsule set.
+- Step 4. If clearance does dominate, the install proceeds through the standard HIC gate before being added to AgentSBT's installed-capsule set.
 This is the on-chain manifestation of Bell-LaPadula no-read-up. The check is enforced both by the harness and by the CapsuleRegistry contract itself; an out-of-band attempt to bypass the harness still fails at the contract level.
 
 ## 7.3 Privacy Guarantees
@@ -419,9 +419,9 @@ This design is what permits the harness to anchor on a public chain while remain
 The Slint app is the polished local surface for operators. It performs four roles simultaneously:
 
 - Concierge — first-run setup wizard with a bundled tiny model driving the conversation. Captures org identity, role assignments, policy bundle selection, hardware key enrollment.
-- HITL Approval Surface — the canonical UI for the Approval Queue. Capsule Inspector pane shows the full manifest before any install; approval pane shows action context, proposing capsule, signatures held, and signatures required.
-- Chat — the interactive interface to the live Agent. Streams tokens; pauses at HITL gates; shows the audit-record-being-formed inline with the conversation.
-- Capsule Marketplace Browser — browse, search, and install capsules from the operator's configured sources (bundled, site mirror, on-chain registry). Installation is HITL-gated; the marketplace pane proposes, the approval pane authorizes.
+- HIC Approval Surface — the canonical UI for the Approval Queue. Capsule Inspector pane shows the full manifest before any install; approval pane shows action context, proposing capsule, signatures held, and signatures required.
+- Chat — the interactive interface to the live Agent. Streams tokens; pauses at HIC gates; shows the audit-record-being-formed inline with the conversation.
+- Capsule Marketplace Browser — browse, search, and install capsules from the operator's configured sources (bundled, site mirror, on-chain registry). Installation is HIC-gated; the marketplace pane proposes, the approval pane authorizes.
 ## 8.2 The Bundled Concierge Model
 
 The Slint app ships with Google Gemma 4 E2B (Effective 2B parameters, Apache 2.0, released April 2026) as its bundled concierge model. The model file is distributed as a separately hashable artifact (gemma-4-e2b-it-Q4_K_M.gguf) alongside the binary, not embedded in it — NIST SI-7 requires the model artifact to be independently verifiable.
@@ -584,7 +584,7 @@ Informative References
 | SI | SI-7, SI-7(1), SI-7(15) | Capsule signatures verified against trusted publisher keys before load; WIT linker check that imports match declared capabilities; model file hash verified against manifest before inference. | capsule loader + doctor |
 | SC | SC-7, SC-8, SC-13 | Air-gapped by default; opt-in egress is policy-bundle-controlled and per-action; FIPS 140-3 validated crypto via aws-lc-rs; mTLS for daemon and mobile bridge. | egress broker + crypto module |
 | CA | CA-2, CA-7 | Nightly doctor report produces signed continuous-monitoring artifact; on-chain anchoring of artifact hash supports CA-7 evidence chain. | doctor + chain anchor |
-| CM | CM-5, CM-5(4) | Capsule install requires HITL approval (CM-5); tier-high capsule install requires dual authorization (CM-5(4) Dual Authorization for Privileged Changes). | capsule install gate |
+| CM | CM-5, CM-5(4) | Capsule install requires HIC approval (CM-5); tier-high capsule install requires dual authorization (CM-5(4) Dual Authorization for Privileged Changes). | capsule install gate |
 | IR | IR-4 | Break-glass path with post-hoc quorum affirmation requirement; quarantine state on AgentSBT freezes capability surface pending IR-4 incident response. | break-glass + AgentSBT lifecycle |
 
 ### Table 3
@@ -603,7 +603,7 @@ Informative References
 | Tier | Signed By | Trust Implication | Installation Path |
 | --- | --- | --- | --- |
 | bundled | Citrate Inc. (canonical publisher key, FIPS HSM) | Maximal trust; safe for any overlay; reviewed and audited by Citrate before publication | Ships with the harness binary; updated via signed release |
-| managed | Org's procurement-chain CA (org SBT controller) | Trusted for the org's policy bundle; subject to org's overlay restrictions | Installed via site mirror or chain pull; HITL approval required |
+| managed | Org's procurement-chain CA (org SBT controller) | Trusted for the org's policy bundle; subject to org's overlay restrictions | Installed via site mirror or chain pull; HIC approval required |
 | workspace | Operator's local signing key | Trusted only for the operator's agent; cannot enter managed tier without re-signing | Local-only; mandatory dual approval (Operator + Security Officer); never anchored to chain |
 
 ### Table 5
@@ -653,7 +653,7 @@ Informative References
 | ApprovalStateMachine.tla | Every proposed action terminates in approve or reject. No action executes without the role-set its manifest requires. The state-managed interrupt resumes deterministically from any checkpoint. Edit-on-medium does not silently promote to a different action. |
 | AuditChainIntegrity.tla | The hash chain is contiguous: previous_hash on record N equals sha256 of record N-1. Signatures verify against the canonical CBOR of the record they sign. No path admits a record whose previous_hash points outside the chain. |
 | DataClassLattice.tla | Bell-LaPadula no-read-up: a capsule whose reads contains a class higher than the agent's clearance never executes. No-write-down: a capsule cannot emit data at a class lower than what it read unless it explicitly traverses a declassification capsule. |
-| CapsuleInstall.tla | A capsule installs only after manifest signature verification + WIT-WASM-manifest cross-validation + HITL approval traversal. No partial-install state exists in which the capsule is callable but its install record is incomplete. |
+| CapsuleInstall.tla | A capsule installs only after manifest signature verification + WIT-WASM-manifest cross-validation + HIC approval traversal. No partial-install state exists in which the capsule is callable but its install record is incomplete. |
 | BreakGlass.tla | Break-glass invocation always notifies every approver. The 72-hour post-hoc affirmation window either resolves to affirmed or surfaces on every subsequent doctor report. ITAR-classified data never reaches a break-glass codepath. |
 
 ### Table 10
@@ -672,7 +672,7 @@ Informative References
 | DID | Decentralized Identifier. Used to identify orgs, agents, and approver roles in the on-chain registry. |
 | Doctor | The pre-flight and continuous-monitoring command. Produces signed reports that serve as the SSP evidence artifact. |
 | FERPA | Family Educational Rights and Privacy Act. Overlay applicable to school-deployed agents. |
-| HITL | Human in the Loop. The approval gate every proposed action traverses. |
+| HIC | Human In Control. The approval gate every proposed action traverses. |
 | OrganizationSBT | Soulbound token representing an organization's on-chain identity. |
 | Overlay | A signed policy bundle that augments the baseline compliance posture with overlay-specific restrictions and evidence requirements. |
 | TLA+ | Specification language developed by Leslie Lamport. cit-agent's five load-bearing safety properties are written and model-checked in TLA+. |

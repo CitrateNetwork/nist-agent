@@ -141,9 +141,9 @@ Where each acceptance criterion is tested:
 
 | Criterion | Test location |
 |---|---|
-| HITL install-gate (AC-6) | `crates/nist-agent-hitl/src/inspector.rs::install_gate_blocks_until_every_field_viewed` |
+| HIC install-gate (AC-6) | `crates/nist-agent-hitl/src/inspector.rs::install_gate_blocks_until_every_field_viewed` |
 | Overlay ratchet refuses CMMC-L3 removal | `crates/nist-agent-policy/src/overlay_state.rs::tests` |
-| Pairing HITL-gated | `crates/nist-agent-mobile-pairing/src/pairing.rs::out_of_order_security_officer_is_refused` |
+| Pairing HIC-gated | `crates/nist-agent-mobile-pairing/src/pairing.rs::out_of_order_security_officer_is_refused` |
 | Mobile TTL 1-hour boundary | `crates/nist-agent-mobile-pairing/src/eligibility.rs::signature_at_ttl_boundary_is_accepted` |
 | Samsung Knox refused | `crates/nist-agent-mobile-pairing/src/attestation.rs::samsung_knox_refused_by_default_per_feature_scenario` |
 | FedRAMP High forbids mobile | `crates/nist-agent-mobile-pairing/src/eligibility.rs::fedramp_high_forbids_mobile_per_feature_table` |

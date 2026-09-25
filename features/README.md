@@ -24,7 +24,7 @@
 
 | Directory | Coverage |
 |---|---|
-| `core/` | Agent loop, policy, HITL, audit chain, model resolver, network posture, doctor |
+| `core/` | Agent loop, policy, HIC, audit chain, model resolver, network posture, doctor |
 | `capsule/` | Capsule composition, manifest schema, signing tiers, install gate, WIT/WASM binding, data-class lattice |
 | `chain/` | The five RFC §7.1 contracts + privacy guarantees + EVM adapter |
 | `overlays/` | Per-overlay policy bundle behavior; overlay activation ratchet |

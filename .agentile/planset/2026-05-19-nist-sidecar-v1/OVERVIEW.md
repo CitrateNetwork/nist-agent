@@ -37,7 +37,7 @@ Two converging pressures make this planset urgent:
    HIPAA jurisprudence is hardening around AI-system data-class
    handling. Organizations are deploying agents either out of
    compliance or not at all.
-2. **Runtime is mostly built (`citrate-agent-runtime`).** The HITL
+2. **Runtime is mostly built (`citrate-agent-runtime`).** The HIC
    queue, audit chain, capsule loader, AnchorRegistry adapter,
    Doctor framework, and 10 production capsules are already in
    `citrate-agent-runtime`. The runtime has scaffolded but unfilled
@@ -64,7 +64,7 @@ list. Summarized:
 - **Overlay bundles.** Signed policy bundles for the Phase-1 overlay
   set: CMMC L3 baseline, FERPA, COPPA, CIPA, HIPAA / HITECH,
   FedRAMP High.
-- **Slint concierge.** Onboarding wizard, HITL queue UI, capsule
+- **Slint concierge.** Onboarding wizard, HIC queue UI, capsule
   inspector, chat surface, capsule marketplace browser.
 - **Distribution.** Reproducible builds, signed releases, bundled
   Gemma 4 E2B GGUF, deployment runbooks per overlay.

@@ -35,7 +35,7 @@ it's a different toolchain, a different release cadence, and a
 different audit surface (mobile-app-store review vs Trail of
 Bits Rust review).
 
-The S-10 surfaces (S-10a wizard, S-10b HITL, S-10c marketplace +
+The S-10 surfaces (S-10a wizard, S-10b HIC, S-10c marketplace +
 chat) all followed the same playbook: ship the **render models +
 protocol layer** in a Rust crate so the rules are testable in
 headless CI; defer the rendering integration (Slint for desktop,
@@ -134,7 +134,7 @@ repos under `CitrateNetwork/nist-agent-mobile-ios` and
    toolchain for this workspace. Doing it badly in one sprint
    would burn audit budget.
 2. **Put the protocol upstream in `citrate-agent-core`.**
-   Rejected for the same reason as the HITL UI (ADR-009): the
+   Rejected for the same reason as the HIC UI (ADR-009): the
    protocol is product-shaped (per-overlay rules, vendor
    allowlist, TTL defaults) — those decisions belong in the
    product, not the engine. Upstream's role is the generic
@@ -156,7 +156,7 @@ crate. Until that demand is concrete, the crate stays here.
 
 ## References
 
-- RFC-CIT-AGENT-0001 §5.6 (mobile signing surface), §8 (HITL).
+- RFC-CIT-AGENT-0001 §5.6 (mobile signing surface), §8 (HIC).
 - ADR-008 / ADR-009 — sibling product-stays-here decisions.
 - `crates/nist-agent-mobile-pairing/` — the crate this ADR
   governs.

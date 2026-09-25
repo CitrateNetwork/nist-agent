@@ -26,11 +26,11 @@ mobile, tier-low approvals queue up and the daemon SLA slips. RFC
 addition — file upstream PR if so.
 
 **Exit criteria.**
-- Pairing flow is HITL-gated; pairing record is itself an AuditRecord.
+- Pairing flow is HIC-gated; pairing record is itself an AuditRecord.
 - iOS + Android apps build reproducibly.
 - Per-overlay enablement honored (FedRAMP-High/ITAR disable mobile; FERPA/HIPAA allow with TTL).
 - Device attestation chains policy-allowlistable.
-- End-to-end test: pair, fetch, sign, surface clears the HITL gate.
+- End-to-end test: pair, fetch, sign, surface clears the HIC gate.
 
 ## Close note — 2026-05-21
 
@@ -46,7 +46,7 @@ layer is Rust, the renderer is downstream.
 - `crates/nist-agent-mobile-pairing` (12th workspace crate).
 - `pairing.rs` — `PairingRecord` + `PairingState` machine
   (Initiated → SecurityOfficerSigned → DeviceAttested → Active;
-  pre-terminal → Rejected; Active → Revoked). HITL-gated +
+  pre-terminal → Rejected; Active → Revoked). HIC-gated +
   AuditRecord-shaped per the feature scenario.
 - `attestation.rs` — `DeviceAttestation` envelope + operator-
   configurable `AttestationAllowlist`. Default permits
@@ -64,7 +64,7 @@ layer is Rust, the renderer is downstream.
 - ADRs 9 → 10 (added ADR-010).
 
 **Exit criteria — final state.**
-- ✅ Pairing flow HITL-gated; record is AuditRecord-shaped.
+- ✅ Pairing flow HIC-gated; record is AuditRecord-shaped.
 - ⏸ iOS + Android apps build reproducibly — **DEFERRED** to
   `nist-agent-mobile-ios` / `-android` sibling repos per ADR-010.
 - ✅ Per-overlay enablement honored (`MobileEligibility::from_active`).

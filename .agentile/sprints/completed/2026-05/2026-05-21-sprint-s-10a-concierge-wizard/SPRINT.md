@@ -27,7 +27,7 @@ closed: 2026-05-21T00:00:00Z
 
 Operator onboarding is the Phase-2 pilot gate. The concierge
 wizard is the smallest standalone slice that delivers
-operator-visible value — without HITL queue UI or marketplace,
+operator-visible value — without HIC queue UI or marketplace,
 operators can still complete first-run setup, sign a
 PolicyBundle, and start the daemon.
 
@@ -127,4 +127,4 @@ wiring lands alongside S-10b/c.
 ADR-008 closes the "does every crate migrate upstream?"
 question: product UI stays here permanently.
 
-**Next sprint.** S-10b (HITL queue UI + Capsule Inspector).
+**Next sprint.** S-10b (HIC queue UI + Capsule Inspector).

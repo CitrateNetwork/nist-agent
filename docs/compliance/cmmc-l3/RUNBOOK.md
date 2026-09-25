@@ -44,7 +44,7 @@ overlay: cmmc-l3
 
 ## What you commit to by adopting CMMC-L3 baseline
 
-- **AC-3(2) Dual Authorization** — privileged commands require two authorized identities. Enforced by HITL quorum (RFC §5.1).
+- **AC-3(2) Dual Authorization** — privileged commands require two authorized identities. Enforced by HIC quorum (RFC §5.1).
 - **AC-5 Separation of Duties** — Auditor role cannot also be an approver. Enforced by `nist-agent-policy::Role` lattice + ApprovalQueue's SoD check.
 - **AC-6 Least Privilege** — every action gated to the minimum role that needs it. Enforced via capsule manifest `risk.required_roles`.
 - **AU-9(5) Dual Authorization for Audit** — audit-log modifications require two-person approval. Enforced via the audit chain's RoleSignature requirement.
@@ -71,7 +71,7 @@ of the supplied workflow proof.
 - Revert the PolicyBundle to the previous signed version. The
   rollback is itself an audit event (`PolicyChange` record with
   AU-9(5) dual signature).
-- Un-install added capsules through the standard HITL-gated
+- Un-install added capsules through the standard HIC-gated
   capsule-uninstall flow.
 - Export the audit log for the period during which the bundle
   applied; archive to WORM storage per

@@ -22,7 +22,7 @@ sprint: S-2
 RFC-CIT-AGENT-0001 §9.1 names five normative TLA+ specifications
 that v1.0 MUST verify in CI as a Rule-10 BLOCKER:
 
-1. `ApprovalStateMachine` — RFC §5 HITL state machine
+1. `ApprovalStateMachine` — RFC §5 HIC state machine
 2. `AuditChainIntegrity` — RFC §6 hash-chained audit log
 3. `DataClassLattice` — RFC §7.2 Bell-LaPadula adapted
 4. `CapsuleInstallGate` — RFC §4.5 / §7.2 (archived as `CapsuleInstall`)

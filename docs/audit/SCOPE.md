@@ -29,7 +29,7 @@ the deployable product. **All paths are repo-relative.**
 | `crates/nist-agent-doctor` | 715 | 11 doctor pre-flight checks. |
 | `crates/nist-agent-audit-sinks` | 245 | WORM filesystem sink (`O_CREAT \| O_EXCL`). |
 | `crates/nist-agent-wizard` | 817 | Slint concierge wizard render models + UI scaffold (`feat-ui`). |
-| `crates/nist-agent-hitl` | 714 | HITL approval queue + Capsule Inspector render models + Slint scaffold. |
+| `crates/nist-agent-hitl` | 714 | HIC approval queue + Capsule Inspector render models + Slint scaffold. |
 | `crates/nist-agent-marketplace` | 895 | Marketplace browser + chat surface render models + Slint scaffold. |
 | `crates/nist-agent-mobile-pairing` | 1021 | Mobile pairing state machine + attestation allowlist + TTL + wire formats. |
 | `crates/nist-agent-release` | 1378 | Release manifest + Ed25519 verifier + installer + GGUF SI-7 check + daemon-hash check + egress posture. |
@@ -100,7 +100,7 @@ Third-party crates worth flagging by audit relevance:
 | `ed25519-dalek 2.1` (`std` feature) | Detached-signature verification on `PolicyBundle` + release manifest. |
 | `ciborium 0.2` | Canonical CBOR (RFC 8949 §4.2.1) for `PolicyBundle` signing payloads. |
 | `sha2 0.10` | SHA-256 for SI-7 model integrity + daemon-hash check + artifact-entry hashes. |
-| `tokio 1.40` | Async runtime for the loop / HITL queue. |
+| `tokio 1.40` | Async runtime for the loop / HIC queue. |
 | `rustls` (via `reqwest`) | TLS for chain RPC + (future) mTLS for mobile pairing. |
 | `toml 0.8` | `release.manifest.toml` decode. |
 | `slint 1.13` | UI runtime — feature-gated (`feat-ui`); not on the audit hot path. |

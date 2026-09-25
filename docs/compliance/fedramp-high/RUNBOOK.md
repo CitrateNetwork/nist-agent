@@ -19,7 +19,7 @@ overlay: fedramp-high
 |---|---|
 | **Baseline** | FedRAMP Rev 5 High (GSA / FedRAMP PMO) |
 | **Audit floor** | 3 years per FedRAMP (`retention::retention_floor(Overlay::FedrampHigh)`); effective floor with CMMC = 6 years (CMMC wins via MAX) |
-| **Signing surfaces** | PIV-CAC smart cards REQUIRED for all approver roles. FIDO2 hardware keys REJECTED at HITL gate. |
+| **Signing surfaces** | PIV-CAC smart cards REQUIRED for all approver roles. FIDO2 hardware keys REJECTED at HIC gate. |
 | **Mobile signing** | DISABLED (`Overlay::FedrampHigh.forbids_mobile_signing() == true`). The harness refuses mobile pairing requests. |
 | **Audit storage** | WORM-eligible REQUIRED. Use `nist_agent_audit_sinks::WormFilesystemSink` or equivalent. |
 
@@ -42,7 +42,7 @@ let sink = WormFilesystemSink::open("/var/lib/cit-agent/audit-worm")?;
 ## What FedRAMP High adds over the CMMC-L3 baseline
 
 - **PIV-CAC enforcement.** Operator's harness rejects FIDO2 keys
-  at HITL signing-surface check when `Overlay::FedrampHigh` is
+  at HIC signing-surface check when `Overlay::FedrampHigh` is
   active. PIV certificates MUST chain to the operator's
   configured CA root + pass CRL/OCSP revocation check.
 - **WORM audit storage.** `WormFilesystemSink` (this sprint)
@@ -102,7 +102,7 @@ chain.
   rolling back without coordinating the Authorization-to-Operate
   state is an ATO violation.
 - Un-install FedRAMP-High-overlay capsules through the standard
-  HITL-gated capsule-uninstall flow. The WORM audit sink stays
+  HIC-gated capsule-uninstall flow. The WORM audit sink stays
   intact (immutable records); the capsule uninstall is itself an
   additional WORM record.
 - Export the audit log for the period during which the

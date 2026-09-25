@@ -124,7 +124,7 @@ sprint: S-10a
 
 ## Next sprint(s)
 
-- **S-10b** (HITL approval queue UI + Capsule Inspector pane).
+- **S-10b** (HIC approval queue UI + Capsule Inspector pane).
   Reuses the Slint scaffold pattern from S-10a; adds two more
   panes; wires the wizard's deferred callbacks at the same
   time.
