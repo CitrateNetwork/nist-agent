@@ -46,6 +46,14 @@ allow = [
     "LicenseRef-Slint-Software-3.0",
 ]
 
+# Our own workspace crates are BUSL-1.1 (open-core tier, commit
+# c245fef) and every one is `publish = false`. `private.ignore` skips
+# license checks for those unpublished first-party crates only; it does
+# NOT add BUSL-1.1 to `allow`, so a third-party BUSL dependency is
+# still rejected.
+[licenses.private]
+ignore = true
+
 [[licenses.exceptions]]
 allow = ["OpenSSL"]
 name = "ring"
@@ -88,12 +96,10 @@ yanked = "deny"
 # chacha20 0.10.2 and spin 0.9.9. What remains here cannot be fixed at
 # this repo's lockfile and is gated on an upstream change:
 #
-#   wasmtime core (3): fixing these needs a MAJOR bump 45 → 46/47, but
-#     citrate-agent-core pins `wasmtime = "^45"`, so cargo cannot move
-#     the core crate here (verified: --precise 46/47 fails to select a
-#     version; 45.0.3 hits a wasmtime-environ conflict). The bump must
-#     land in citrate-agent-runtime first — the S-13 (Trail of Bits)
-#     prep gate and a v1.0.0-tag prerequisite.
+#   wasmtime core (3): RESOLVED 2026-09-24 — the citrate-agent-core
+#     re-pin (0db3da6) moved wasmtime/wasmtime-wasi to 46.0.3, which
+#     fixes RUSTSEC-2026-0222/-0269/-0188; their ignores were removed
+#     once cargo-deny reported them as not encountered.
 #
 #   unmaintained (6): transitive stale crates with no safe upgrade —
 #     rustybuzz/ttf-parser (Slint text/render, build-time only),
@@ -106,12 +112,6 @@ yanked = "deny"
 # Every entry has a one-line reason linking the upstream gate.
 # These ignores MUST be empty before the v1.0.0 tag.
 ignore = [
-    # ── wasmtime / wasmtime-wasi (transitive via citrate-agent-core) ──
-    # Blocked by runtime's `wasmtime = "^45"` pin; unblocks when the
-    # runtime bumps wasmtime to a fixed 46/47 line (S-13).
-    { id = "RUSTSEC-2026-0222", reason = "wasmtime: stores mix up type indices between engines; needs wasmtime >=46.0.2 — blocked by runtime ^45 pin (S-13)" },
-    { id = "RUSTSEC-2026-0269", reason = "wasmtime: filesystem sandbox escape on trailing slashes; needs wasmtime >=46.0.3 — blocked by runtime ^45 pin (S-13)" },
-    { id = "RUSTSEC-2026-0188", reason = "wasmtime-wasi: WASI hard links/renames bypass FilePerms; 45.0.3 fix conflicts with runtime's wasmtime-environ pin — unblocks with the runtime wasmtime bump (S-13)" },
     # ── ANSI-escape logger advisory ───────────────────────────
     { id = "RUSTSEC-2025-0055", reason = "ANSI escape logging vulnerability via transitive log dep; remediation tracked in S-13 prep alongside structured-logging migration" },
     # ── unmaintained transitive crates (no safe upgrade available) ──
@@ -137,9 +137,10 @@ highlight = "all"
 unknown-registry = "deny"
 unknown-git = "deny"
 allow-registry = ["https://github.com/rust-lang/crates.io-index"]
-# Federation deps are pulled via SSH aliases (see .cargo/config.toml).
+# Federation deps are fetched over https (the repos are public; see
+# commit 63585a9, which moved Cargo.toml off the old SSH aliases).
 # Adding a new git source requires a PR that justifies it.
 allow-git = [
-    "ssh://git@github-citrate-agent-runtime/CitrateNetwork/citrate-agent-runtime",
-    "ssh://git@github-citrate-chain/CitrateNetwork/citrate-chain",
+    "https://github.com/CitrateNetwork/citrate-agent-runtime",
+    "https://github.com/CitrateNetwork/citrate-chain",
 ]
