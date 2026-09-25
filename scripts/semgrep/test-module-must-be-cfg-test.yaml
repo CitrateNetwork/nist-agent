@@ -1,0 +1,23 @@
+# test-module-must-be-cfg-test — soundness guard for no-unwrap-in-prod.
+#
+# `no-unwrap-in-prod.yaml` exempts code inside `mod tests { ... }`
+# because Semgrep's Rust parser cannot match the `#[cfg(test)]`
+# attribute. That exemption is only sound if every `mod tests` is
+# actually compiled out of production builds. This rule fails CI on any
+# `mod tests` whose preceding line is not `#[cfg(test)]`, so the name
+# cannot be used to smuggle production `.unwrap()` calls past Rule 5.
+
+rules:
+  - id: test-module-must-be-cfg-test
+    message: |
+      `mod tests` must be immediately preceded by `#[cfg(test)]`.
+      no-unwrap-in-prod exempts `mod tests` bodies as test-only code;
+      an ungated `mod tests` would ship in production builds.
+    languages: [generic]
+    severity: ERROR
+    paths:
+      include:
+        - "*.rs"
+      exclude:
+        - "**/target/**"
+    pattern-regex: '(?m)^(?![ \t]*#\[cfg\(test\)\][ \t]*$).*\n[ \t]*(?:pub(?:\([a-z]+\))?[ \t]+)?mod[ \t]+tests\b'

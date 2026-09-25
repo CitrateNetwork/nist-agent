@@ -10,6 +10,7 @@
 | Rule | Languages | Severity | Companion check |
 |------|-----------|----------|-----------------|
 | `no-unwrap-in-prod.yaml` | rust | ERROR | `scripts/ci/check_no_unwraps.py` |
+| `test-module-must-be-cfg-test.yaml` | generic / rust | ERROR | (soundness guard for the `mod tests` exemption in `no-unwrap-in-prod`) |
 | `no-stub-default-constructor.yaml` | rust | ERROR | `scripts/ci/check_no_mocks.py` |
 | `no-real-backend-loophole.yaml` | rust | WARNING | (none — too noisy for hard-block) |
 | `frontmatter-required.yaml` | generic / markdown | ERROR | `scripts/ci/check_frontmatter.py` |
