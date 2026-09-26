@@ -197,6 +197,10 @@ jobs:
     permissions:
       contents: write   # upload release assets
       id-token: write   # reserved for future sigstore / OIDC
+    env:
+      # Presence flag for the signing secret ('true' / 'false', never the
+      # value); the key itself stays in the sign step's env only.
+      HAS_RELEASE_SIGNING_KEY: ${{ secrets.RELEASE_SIGNING_KEY_HEX != '' }}
 
     steps:
       - name: checkout
@@ -373,6 +377,24 @@ jobs:
               --bin sign-manifest -- \
               --input release-staging/release.manifest.toml \
               --out release-staging/release.manifest.toml
+
+      # Nothing ships unsigned silently: on a v* tag build, fail unless the
+      # release signing key was present and the manifest carries a real
+      # Ed25519 signature (sign-manifest writes an empty envelope when the
+      # key is missing).
+      - name: require signed manifest (v* tag builds)
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          set -euo pipefail
+          if [ "$HAS_RELEASE_SIGNING_KEY" != "true" ]; then
+            echo "::error title=Unsigned release::v* tag build without RELEASE_SIGNING_KEY_HEX in the release environment"
+            exit 1
+          fi
+          if ! grep -Eq 'signature_hex *= *"[0-9a-f]{128}"' release-staging/release.manifest.toml; then
+            echo "::error title=Unsigned release::release.manifest.toml has no Ed25519 signature"
+            exit 1
+          fi
+          echo "release manifest is signed"
 
       - name: package tarball
         run: |
