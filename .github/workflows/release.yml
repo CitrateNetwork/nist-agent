@@ -196,7 +196,6 @@ jobs:
     # reviewer, v* tags only). Only a v* tag push runs this job; PR CI and
     # manual dispatches never reach the environment.
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
-    environment: release
     permissions:
       contents: write   # upload release assets
       id-token: write   # reserved for future sigstore / OIDC
