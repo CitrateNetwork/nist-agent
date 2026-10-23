@@ -91,7 +91,10 @@ fn unwrap_gate_full_scan_flags_prod_unwrap_under_crates() {
         code, 1,
         "full-scan mode must flag a bare .unwrap() in crates/*/src; got {code}: {log}"
     );
-    assert!(log.contains("crates/demo/src/lib.rs:2"), "violation must cite the file: {log}");
+    assert!(
+        log.contains("crates/demo/src/lib.rs:2"),
+        "violation must cite the file: {log}"
+    );
     fs::remove_dir_all(&root).expect("clean fixture");
 }
 
@@ -102,7 +105,10 @@ fn unwrap_gate_ignores_unwrap_inside_in_file_test_module() {
         "pub fn one() -> u32 {\n    1\n}\n\n#[cfg(test)]\nmod tests {\n    #[test]\n    fn t() {\n        let v: Option<u32> = Some(super::one());\n        assert_eq!(v.unwrap(), 1);\n    }\n}\n",
     );
     let (code, log) = run_unwrap_gate(&root);
-    assert_eq!(code, 0, "test-module unwraps are not production code; got {code}: {log}");
+    assert_eq!(
+        code, 0,
+        "test-module unwraps are not production code; got {code}: {log}"
+    );
     fs::remove_dir_all(&root).expect("clean fixture");
 }
 
@@ -114,7 +120,10 @@ fn unwrap_gate_is_clean_on_this_workspace() {
         .output()
         .expect("python3 must be runnable");
     let log = String::from_utf8_lossy(&out.stdout);
-    assert!(out.status.success(), "workspace has production unwraps:\n{log}");
+    assert!(
+        out.status.success(),
+        "workspace has production unwraps:\n{log}"
+    );
 }
 
 // ── TLA+ toolchain pin ──────────────────────────────────────────────
@@ -132,14 +141,21 @@ fn tla_tools_jar_is_tag_pinned_and_checksum_verified() {
         .find(|l| l.trim_start().starts_with("TLA_TOOLS_TAG:"))
         .expect("TLA_TOOLS_TAG must be pinned in env");
     assert!(
-        tag_line.split(':').nth(1).is_some_and(|v| v.trim().starts_with('v')),
+        tag_line
+            .split(':')
+            .nth(1)
+            .is_some_and(|v| v.trim().starts_with('v')),
         "TLA_TOOLS_TAG must name a release tag: {tag_line}"
     );
     let sha_line = eff
         .iter()
         .find(|l| l.trim_start().starts_with("TLA_TOOLS_SHA256:"))
         .expect("TLA_TOOLS_SHA256 must be pinned in env");
-    let digest = sha_line.split(':').nth(1).map(str::trim).unwrap_or_default();
+    let digest = sha_line
+        .split(':')
+        .nth(1)
+        .map(str::trim)
+        .unwrap_or_default();
     assert!(
         digest.len() == 64 && digest.chars().all(|c| c.is_ascii_hexdigit()),
         "TLA_TOOLS_SHA256 must be a 64-hex digest: {sha_line}"

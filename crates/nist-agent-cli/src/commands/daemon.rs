@@ -116,7 +116,9 @@ mod tests {
             insecure_no_policy: false,
             insecure_dev: false,
         };
-        let code = run(args).await.expect("refusal is an exit code, not an error");
+        let code = run(args)
+            .await
+            .expect("refusal is an exit code, not an error");
         assert_eq!(code, 2, "debug build must refuse without --insecure-dev");
     }
 
@@ -132,6 +134,9 @@ mod tests {
             insecure_no_policy: false,
             insecure_dev: true,
         };
-        assert!(run(args).await.is_err(), "past the gate, an absent config must error");
+        assert!(
+            run(args).await.is_err(),
+            "past the gate, an absent config must error"
+        );
     }
 }

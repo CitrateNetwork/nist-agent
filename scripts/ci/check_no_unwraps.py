@@ -46,7 +46,9 @@ PROJECT_ROOT = find_project_root()
 # of `_` after `unwrap` is what distinguishes the bare form.
 RUST_UNWRAP_RE = re.compile(r"\.unwrap\s*\(")
 
-RUST_PROD_DIRS = ["src", "core", "node", "wallet", "cli", "faucet"]
+# `crates` covers this repo's Cargo-workspace layout (`crates/*/src`); the
+# others are kept for single-crate layouts.
+RUST_PROD_DIRS = ["crates", "src", "core", "node", "wallet", "cli", "faucet"]
 RUST_EXCLUDE_PATTERNS = [
     re.compile(r"(?:^|/)tests/"),
     re.compile(r"(?:^|/)target/"),
@@ -75,6 +77,18 @@ def is_test_context(line_above: str | None, line: str) -> bool:
     return False
 
 
+# An in-file test module (`#[cfg(test)]` directly followed by `mod <name>`)
+# ends the production part of a source file, by the convention every crate
+# here follows (tests last).
+RUST_TEST_MOD_RE = re.compile(r"^\s*(?:pub(?:\([^)]*\))?\s+)?mod\s+\w+")
+
+
+def starts_test_module(line: str, next_line: str | None) -> bool:
+    return line.strip() == "#[cfg(test)]" and bool(
+        next_line is not None and RUST_TEST_MOD_RE.match(next_line)
+    )
+
+
 def check_rust(files: list[Path]) -> list[tuple[Path, int, str]]:
     violations: list[tuple[Path, int, str]] = []
     for path in files:
@@ -86,6 +100,8 @@ def check_rust(files: list[Path]) -> list[tuple[Path, int, str]]:
         except OSError:
             continue
         for i, line in enumerate(lines):
+            if starts_test_module(line, lines[i + 1] if i + 1 < len(lines) else None):
+                break
             if not RUST_UNWRAP_RE.search(line):
                 continue
             line_above = lines[i - 1] if i > 0 else None
