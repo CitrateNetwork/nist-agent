@@ -518,6 +518,37 @@ mod tests {
         );
     }
 
+    /// The per-connection read is capped: a request line longer than
+    /// `MAX_REQUEST_BYTES` is refused even when its prefix is a valid
+    /// request (trailing JSON whitespace keeps it decodable if the cap
+    /// is ever lifted, so a missing cap shows up as a `Status` reply).
+    #[tokio::test]
+    async fn over_length_request_is_refused_not_dispatched() {
+        let (_tmp, mut daemon) = fixture_daemon();
+        let path = daemon.bind().unwrap();
+        let server = tokio::spawn(async move {
+            daemon.serve_once().await.unwrap();
+        });
+        let mut stream = UnixStream::connect(&path).await.expect("connect");
+        let mut line = IpcRequest::Status.to_line();
+        line.push_str(&" ".repeat(MAX_REQUEST_BYTES as usize + 512));
+        line.push('\n');
+        stream.write_all(line.as_bytes()).await.unwrap();
+        stream.shutdown().await.unwrap();
+
+        let (r, _w) = stream.into_split();
+        let mut reader = BufReader::new(r);
+        let mut buf = String::new();
+        reader.read_line(&mut buf).await.unwrap();
+        match IpcResponse::from_line(&buf).unwrap() {
+            IpcResponse::Error { message, .. } => {
+                assert!(message.contains("byte limit"), "got {message}")
+            }
+            other => panic!("over-length request must be refused, got {other:?}"),
+        }
+        server.await.unwrap();
+    }
+
     #[tokio::test]
     async fn malformed_request_returns_error_response() {
         let (_tmp, mut daemon) = fixture_daemon();

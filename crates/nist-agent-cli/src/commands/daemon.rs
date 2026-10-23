@@ -97,3 +97,41 @@ pub async fn run(args: DaemonArgs) -> Result<i32> {
     println!("citrate-agent daemon shutting down");
     Ok(0)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A debug build refuses the real run loop unless the operator
+    /// passes `--insecure-dev`; the refusal happens before any config
+    /// is read (so a missing config path still yields exit 2, not a
+    /// config error).
+    #[cfg(debug_assertions)]
+    #[tokio::test]
+    async fn debug_build_refuses_run_loop_without_insecure_dev() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let args = DaemonArgs {
+            config: Some(tmp.path().join("absent.toml")),
+            smoke: false,
+            insecure_no_policy: false,
+            insecure_dev: false,
+        };
+        let code = run(args).await.expect("refusal is an exit code, not an error");
+        assert_eq!(code, 2, "debug build must refuse without --insecure-dev");
+    }
+
+    /// With `--insecure-dev` the gate is passed and the command goes
+    /// on to read the config (here: absent, so it errors).
+    #[cfg(debug_assertions)]
+    #[tokio::test]
+    async fn insecure_dev_passes_the_debug_gate() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let args = DaemonArgs {
+            config: Some(tmp.path().join("absent.toml")),
+            smoke: false,
+            insecure_no_policy: false,
+            insecure_dev: true,
+        };
+        assert!(run(args).await.is_err(), "past the gate, an absent config must error");
+    }
+}
